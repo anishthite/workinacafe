@@ -14,6 +14,7 @@ A hand-drawn community map for finding cafés that are actually good to work fro
 - Four-step add-a-café flow that publishes a demo contribution into the current browser session
 - Desktop sidebar and mobile bottom-sheet layouts
 - Keyboard, reduced-motion, and accessible-label support
+- Hand-drawn social preview card for Open Graph, Twitter/X, iMessage, Slack, and other link unfurls
 
 Café records and community actions are demo data in V1. Authentication, persistence, geocoding, and moderation are intentionally deferred.
 
@@ -48,4 +49,14 @@ npm run build
 - [Editable Excalidraw UX concept](docs/cafe-work-map-ux.excalidraw)
 - [Rendered UX concept](docs/cafe-work-map-ux.png)
 
-The Virgil font is licensed under SIL Open Font License 1.1. Its license is included at `public/fonts/LICENSE-Virgil.md`.
+## Social preview
+
+Link previews (Open Graph, Twitter/X, iMessage, Slack, LinkedIn, Discord) use a generated 1200×630 card rendered with `next/og` in the Virgil hand-drawn font.
+
+![Workspot social preview](docs/social-preview.png)
+
+- Renderer: `src/lib/og-image.tsx`
+- Routes: `src/app/opengraph-image.tsx` and `src/app/twitter-image.tsx` (statically prerendered)
+- Metadata wiring lives in `src/app/layout.tsx`. Set `NEXT_PUBLIC_SITE_URL` in production so the absolute image URLs resolve correctly.
+
+The Virgil font is licensed under SIL Open Font License 1.1. Its license is included at `public/fonts/LICENSE-Virgil.md` (and `assets/LICENSE-Virgil.md` alongside the OG render font).
