@@ -21,7 +21,7 @@ const virgil = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Workspot — community café work map",
+  title: "workina.cafe — community café work map",
   description:
     "Find community-checked cafés with reliable Wi-Fi, outlets, quiet seats, and laptop-friendly policies.",
 };
