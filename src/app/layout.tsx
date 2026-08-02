@@ -20,7 +20,7 @@ const virgil = localFont({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://workinacafe.vercel.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://workina.cafe";
 
 const title = "Workspot — community café work map";
 const description =

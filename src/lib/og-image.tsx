@@ -184,9 +184,14 @@ export async function renderOgImage() {
               >
                 <CoffeeIcon size={46} color={green} />
               </div>
-              <div style={{ display: "flex", fontSize: 104, lineHeight: 1 }}>
-                <span style={{ color: ink }}>Work</span>
-                <span style={{ color: green }}>spot</span>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <div style={{ display: "flex", fontSize: 104, lineHeight: 1 }}>
+                  <span style={{ color: ink }}>Work</span>
+                  <span style={{ color: green }}>spot</span>
+                </div>
+                <div style={{ display: "flex", color: green, fontSize: 30, marginTop: 6 }}>
+                  workina.cafe
+                </div>
               </div>
             </div>
 
