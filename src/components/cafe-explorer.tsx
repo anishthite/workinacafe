@@ -330,7 +330,7 @@ export function CafeExplorer() {
       <header className="topbar rough-surface">
         <button className="wordmark" onClick={() => setSelectedId(null)} type="button">
           <span className="wordmark__mark"><Coffee aria-hidden="true" /></span>
-          <span>work<span>spot</span></span>
+          <span>work<span>ina.cafe</span></span>
         </button>
 
         <label className="global-search rough-input">

@@ -1,8 +1,8 @@
-# Workspot
+# workina.cafe
 
 A hand-drawn community map for finding cafés that are actually good to work from.
 
-![Workspot desktop preview](docs/v1-desktop.png)
+![workina.cafe desktop preview](docs/v1-desktop.png)
 
 ## V1 features
 
