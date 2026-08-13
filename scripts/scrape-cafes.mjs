@@ -1,37 +1,48 @@
-// Scrape work-friendly cafés near the Workspot map center from OpenStreetMap.
+// Build a reproducible, evidence-screened list of San Francisco work-café
+// candidates from OpenStreetMap (OSM).
 //
-// Data source: OpenStreetMap via the Overpass API (https://overpass-api.de).
 // OSM data is © OpenStreetMap contributors, licensed under the ODbL.
-//
-// This script is deliberately dependency-free (Node 18+ global fetch) and
-// deterministic: given the same OSM snapshot it produces the same records.
+// This script uses Node 18+ global fetch and has no package dependencies.
 //
 // Usage:
 //   node scripts/scrape-cafes.mjs > src/data/cafes.imported.ts
-//   node scripts/scrape-cafes.mjs --limit 30    # cap number of cafés
-//   node scripts/scrape-cafes.mjs --radius 3000 # search radius in metres
+//   node scripts/scrape-cafes.mjs --limit 50 > src/data/cafes.imported.ts
 //
-// It prints a complete TypeScript module exporting `IMPORTED_CAFES: Cafe[]`,
-// so regenerating never touches the hand-authored records in cafes.ts.
-//
-// It only emits fields we can source or honestly derive. Fields OSM does not
-// carry (outlets, noise, calls, seat tips, laptop policy, live hours) are set
-// to neutral, clearly-unverified defaults and flagged with `submitted: true`
-// so the UI shows them as fresh community imports awaiting confirmation.
+// A record must have a name, coordinates, a complete street address, explicit
+// positive internet access, and no explicit "indoor_seating=no" tag. These are
+// evidence gates, not a claim that a café welcomes laptops or has power outlets.
+// See docs/cafe-scraping-methodology.md for the complete selection metric.
 
 const args = process.argv.slice(2);
-const getArg = (name, fallback) => {
-  const i = args.indexOf(`--${name}`);
-  return i !== -1 && args[i + 1] ? args[i + 1] : fallback;
+
+function getArg(name, fallback) {
+  const index = args.indexOf(`--${name}`);
+  return index !== -1 && args[index + 1] ? args[index + 1] : fallback;
+}
+
+function positiveInteger(value, label) {
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number < 1) {
+    throw new Error(`${label} must be a positive integer.`);
+  }
+  return number;
+}
+
+// Covers San Francisco proper and deliberately excludes neighboring cities.
+const SF_BOUNDS = {
+  south: 37.7034,
+  west: -122.527,
+  north: 37.812,
+  east: -122.3482,
 };
 
 // Must match MAP_CENTER in src/components/cafe-explorer.tsx ([lon, lat]).
 const CENTER = { lat: 37.7708, lon: -122.4216 };
-const RADIUS_M = Number(getArg("radius", "2500"));
-const LIMIT = Number(getArg("limit", "28"));
+const LIMIT = positiveInteger(getArg("limit", "100"), "--limit");
 
-// Names already present as demo data; skip any real-world collisions.
-const EXISTING_NAMES = new Set([
+// Names already present as fictional demo data; do not mix a real café that
+// happens to share one of these exact names into the demo records.
+const DEMO_NAMES = new Set([
   "juniper coffee",
   "field day café",
   "north star coffee",
@@ -40,8 +51,8 @@ const EXISTING_NAMES = new Set([
   "good day roasters",
 ]);
 
-// Curated SF neighborhood centroids. We assign each café to the nearest one.
-// This is a heuristic (OSM cafés rarely carry a reliable neighborhood tag).
+// Curated SF neighborhood centroids. This remains a heuristic: OSM usually
+// does not have a neighborhood tag appropriate for display.
 const NEIGHBORHOODS = [
   ["Lower Haight", 37.7715, -122.4312],
   ["Hayes Valley", 37.7759, -122.4245],
@@ -60,11 +71,25 @@ const NEIGHBORHOODS = [
   ["Nob Hill", 37.793, -122.4161],
   ["Potrero Hill", 37.7605, -122.4],
   ["Pacific Heights", 37.7925, -122.4382],
+  ["Richmond District", 37.7805, -122.4705],
+  ["Inner Sunset", 37.7628, -122.4656],
+  ["Outer Sunset", 37.7536, -122.494],
+  ["Chinatown", 37.7941, -122.4078],
+  ["North Beach", 37.8023, -122.4098],
+  ["Financial District", 37.794, -122.4005],
+  ["Mission Bay", 37.7718, -122.3935],
+  ["Dogpatch", 37.7599, -122.3888],
+  ["Excelsior", 37.7247, -122.4326],
+  ["Bernal Heights", 37.742, -122.415],
+  ["West Portal", 37.7406, -122.4654],
 ];
 
+const COLORS = ["green", "blue", "amber", "pink"];
 const RADIANS = Math.PI / 180;
+const POSITIVE_INTERNET_ACCESS = new Set(["yes", "wifi", "wlan"]);
+
 function haversineMiles(aLat, aLon, bLat, bLon) {
-  const R = 3958.8; // Earth radius in miles
+  const radius = 3958.8;
   const dLat = (bLat - aLat) * RADIANS;
   const dLon = (bLon - aLon) * RADIANS;
   const lat1 = aLat * RADIANS;
@@ -72,24 +97,24 @@ function haversineMiles(aLat, aLon, bLat, bLon) {
   const h =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
+  return 2 * radius * Math.asin(Math.sqrt(h));
 }
 
 function nearestNeighborhood(lat, lon) {
   let best = NEIGHBORHOODS[0];
-  let bestD = Infinity;
-  for (const n of NEIGHBORHOODS) {
-    const d = haversineMiles(lat, lon, n[1], n[2]);
-    if (d < bestD) {
-      bestD = d;
-      best = n;
+  let bestDistance = Infinity;
+  for (const neighborhood of NEIGHBORHOODS) {
+    const distance = haversineMiles(lat, lon, neighborhood[1], neighborhood[2]);
+    if (distance < bestDistance) {
+      best = neighborhood;
+      bestDistance = distance;
     }
   }
   return best[0];
 }
 
-function slugify(name) {
-  return name
+function slugify(value) {
+  return value
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -97,80 +122,145 @@ function slugify(name) {
     .replace(/^-+|-+$/g, "");
 }
 
-// Deterministic small rotation in the range used by the existing demo data.
 function rotationFor(id) {
-  let h = 0;
-  for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return (h % 6) - 3; // -3..2
-}
-
-const COLORS = ["green", "blue", "amber", "pink"];
-
-function mapWifi(tags) {
-  const ia = tags.internet_access;
-  if (ia === "wlan" || ia === "yes" || ia === "wifi") return "Good";
-  return "Okay"; // unknown -> conservative floor (type has no "Unknown")
+  let hash = 0;
+  for (const character of id) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  return (hash % 6) - 3;
 }
 
 function mapAddress(tags) {
-  const num = tags["addr:housenumber"];
-  const street = tags["addr:street"];
-  if (num && street) return `${num} ${street}`;
-  if (street) return street;
-  return "Address needs confirmation";
+  return `${tags["addr:housenumber"]} ${tags["addr:street"]}`;
+}
+
+function isPositiveInternetAccess(tags) {
+  return POSITIVE_INTERNET_ACCESS.has((tags.internet_access || "").toLowerCase());
+}
+
+function hasCompleteAddress(tags) {
+  return Boolean(tags["addr:housenumber"] && tags["addr:street"]);
+}
+
+function hasListedHours(tags) {
+  return Boolean(tags.opening_hours) && !/(closed|coming soon)/i.test(tags.opening_hours);
+}
+
+function hasCoffeeServiceTag(tags) {
+  return /coffee|cafe|tea|bakery|breakfast|pastry|donut|dessert|boba/i.test(
+    `${tags.cuisine || ""} ${tags.name || ""}`,
+  );
+}
+
+function qualityScore(tags) {
+  // The four required gates are deliberately not included in the score: every
+  // emitted result passed them. The score only prioritizes richer supporting
+  // evidence while preserving the entire qualifying set.
+  let score = 0;
+  if (hasListedHours(tags)) score += 2;
+  if (tags.website || tags["contact:website"]) score += 1;
+  if (tags.phone || tags["contact:phone"]) score += 1;
+  if (hasCoffeeServiceTag(tags)) score += 1;
+  if (tags.indoor_seating === "yes") score += 1;
+  if (["yes", "sidewalk", "patio", "terrace"].includes(tags.outdoor_seating)) score += 1;
+  return score;
+}
+
+function candidateKey(name, tags) {
+  return `${name.toLocaleLowerCase()}\u0000${tags["addr:housenumber"]}\u0000${tags["addr:street"].toLocaleLowerCase()}`;
 }
 
 async function overpass(query) {
-  const res = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "workspot-cafe-scraper/1.0 (https://github.com/; OSM import)",
-      Accept: "application/json",
-    },
-    body: "data=" + encodeURIComponent(query),
-  });
-  if (!res.ok) throw new Error(`Overpass ${res.status}: ${await res.text()}`);
-  return res.json();
+  const endpoints = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+  ];
+  const errors = [];
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "workinacafe-cafe-scraper/2.0 (https://github.com/anishthite/workinacafe)",
+          Accept: "application/json",
+        },
+        body: `data=${encodeURIComponent(query)}`,
+      });
+      if (!response.ok) {
+        errors.push(`${endpoint} returned ${response.status}`);
+        continue;
+      }
+      return response.json();
+    } catch (error) {
+      errors.push(`${endpoint} failed: ${error.message}`);
+    }
+  }
+
+  throw new Error(`All Overpass endpoints failed (${errors.join("; ")}).`);
 }
 
 const QUERY = `
-[out:json][timeout:60];
+[out:json][timeout:90];
 (
-  node["amenity"="cafe"](around:${RADIUS_M},${CENTER.lat},${CENTER.lon});
-  way["amenity"="cafe"](around:${RADIUS_M},${CENTER.lat},${CENTER.lon});
+  node["amenity"="cafe"](${SF_BOUNDS.south},${SF_BOUNDS.west},${SF_BOUNDS.north},${SF_BOUNDS.east});
+  way["amenity"="cafe"](${SF_BOUNDS.south},${SF_BOUNDS.west},${SF_BOUNDS.north},${SF_BOUNDS.east});
+  relation["amenity"="cafe"](${SF_BOUNDS.south},${SF_BOUNDS.west},${SF_BOUNDS.north},${SF_BOUNDS.east});
 );
 out center tags;
 `;
 
-function toRecord(el, index) {
-  const tags = el.tags || {};
-  const lat = el.lat ?? el.center?.lat;
-  const lon = el.lon ?? el.center?.lon;
+function toCandidate(element) {
+  const tags = element.tags || {};
+  const lat = element.lat ?? element.center?.lat;
+  const lon = element.lon ?? element.center?.lon;
   const name = (tags.name || "").trim();
-  const id = slugify(name);
-  const distance = haversineMiles(CENTER.lat, CENTER.lon, lat, lon);
+  if (
+    !name ||
+    lat == null ||
+    lon == null ||
+    DEMO_NAMES.has(name.toLocaleLowerCase()) ||
+    !hasCompleteAddress(tags) ||
+    !isPositiveInternetAccess(tags) ||
+    tags.indoor_seating === "no"
+  ) {
+    return null;
+  }
+
+  return {
+    element,
+    tags,
+    name,
+    latitude: lat,
+    longitude: lon,
+    distance: haversineMiles(CENTER.lat, CENTER.lon, lat, lon),
+    score: qualityScore(tags),
+  };
+}
+
+function toRecord(candidate, index) {
+  const { element, tags, name, latitude, longitude, distance } = candidate;
+  const id = `osm-${element.type}-${element.id}-${slugify(name)}`;
   return {
     id,
     name,
-    neighborhood: nearestNeighborhood(lat, lon),
+    neighborhood: nearestNeighborhood(latitude, longitude),
     address: mapAddress(tags),
     distance: `${distance.toFixed(1)} mi`,
-    _distance: distance,
-    longitude: Number(lon.toFixed(4)),
-    latitude: Number(lat.toFixed(4)),
-    isOpen: true, // live "open now" is not scraped; see methodology
+    longitude: Number(longitude.toFixed(4)),
+    latitude: Number(latitude.toFixed(4)),
+    // This is a discovery list, not a timezone-aware live-hours service.
+    isOpen: true,
     closesAt: "Hours vary",
-    wifi: mapWifi(tags),
-    outlets: "A few", // not in OSM
-    noise: "Conversational", // not in OSM
-    calls: "Brief calls", // not in OSM
-    outdoor: tags.outdoor_seating === "yes",
-    freshness: "imported from OpenStreetMap",
+    wifi: "Good",
+    outlets: "A few",
+    noise: "Conversational",
+    calls: "Brief calls",
+    outdoor: ["yes", "sidewalk", "patio", "terrace"].includes(tags.outdoor_seating),
+    freshness: "screened from OpenStreetMap",
     confirmations: 0,
-    seatTip: "No community seat tips yet — add one after your visit.",
+    seatTip: "Wi-Fi is mapped; seating and outlets still need a community check.",
     laptopPolicy: "Laptop policy not yet confirmed.",
-    price: "$$", // OSM rarely carries reliable price data
+    price: "$$",
     accessible: tags.wheelchair === "yes",
     color: COLORS[index % COLORS.length],
     rotation: rotationFor(id),
@@ -179,52 +269,51 @@ function toRecord(el, index) {
 }
 
 function serialize(record) {
-  const lines = Object.entries(record)
-    .filter(([k]) => !k.startsWith("_")) // drop internal sort-only fields
-    .map(([k, v]) => `    ${k}: ${JSON.stringify(v)},`);
+  const lines = Object.entries(record).map(([key, value]) => `    ${key}: ${JSON.stringify(value)},`);
   return `  {\n${lines.join("\n")}\n  },`;
 }
 
 async function main() {
   const data = await overpass(QUERY);
   const seen = new Set();
-  const records = [];
-  for (const el of data.elements) {
-    const name = (el.tags?.name || "").trim();
-    const lat = el.lat ?? el.center?.lat;
-    const lon = el.lon ?? el.center?.lon;
-    if (!name || lat == null || lon == null) continue;
-    const key = name.toLowerCase();
-    if (EXISTING_NAMES.has(key) || seen.has(key)) continue;
+  const candidates = [];
+
+  for (const element of data.elements) {
+    const candidate = toCandidate(element);
+    if (!candidate) continue;
+    const key = candidateKey(candidate.name, candidate.tags);
+    if (seen.has(key)) continue;
     seen.add(key);
-    records.push(toRecord({ ...el, lat, lon }, records.length));
+    candidates.push(candidate);
   }
 
-  records.sort((a, b) => a._distance - b._distance);
-  const chosen = records.slice(0, LIMIT);
-  // Re-assign colors after sorting so the palette cycles by distance order.
-  chosen.forEach((r, i) => (r.color = COLORS[i % COLORS.length]));
+  candidates.sort(
+    (a, b) =>
+      b.score - a.score ||
+      a.distance - b.distance ||
+      a.name.localeCompare(b.name),
+  );
+  const chosen = candidates.slice(0, LIMIT);
+  const records = chosen.map(toRecord);
 
   process.stderr.write(
-    `Fetched ${data.elements.length} elements, ${records.length} named unique cafés, emitting ${chosen.length}.\n`,
+    `Fetched ${data.elements.length} OSM elements; ${candidates.length} passed the work-café evidence gates; emitting ${records.length}.\n`,
   );
 
   const header = `// AUTO-GENERATED by scripts/scrape-cafes.mjs — do not edit by hand.
 // Source: OpenStreetMap via the Overpass API, © OpenStreetMap contributors (ODbL).
 // Regenerate: node scripts/scrape-cafes.mjs > src/data/cafes.imported.ts
-// Search: amenity=cafe within ${RADIUS_M}m of [${CENTER.lon}, ${CENTER.lat}], limit ${LIMIT}.
-// See docs/cafe-scraping-methodology.md for field provenance and caveats.
+// Search: amenity=cafe in the San Francisco bounding box; work-café evidence gates; limit ${LIMIT}.
+// See docs/cafe-scraping-methodology.md for the audit, score, provenance, and caveats.
 
 import type { Cafe } from "./cafes";
 
 export const IMPORTED_CAFES: Cafe[] = [
 `;
-  process.stdout.write(
-    header + chosen.map(serialize).join("\n") + "\n];\n",
-  );
+  process.stdout.write(`${header}${records.map(serialize).join("\n")}\n];\n`);
 }
 
-main().catch((err) => {
-  console.error(err);
+main().catch((error) => {
+  console.error(error);
   process.exit(1);
 });
