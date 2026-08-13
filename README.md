@@ -15,6 +15,10 @@ A hand-drawn community map for finding cafés that are actually good to work fro
 - Desktop sidebar and mobile bottom-sheet layouts
 - Keyboard, reduced-motion, and accessible-label support
 
+## UI direction lab
+
+Five interactive alternate interface concepts live at [/prototypes](/prototypes). They explore needs-first matching, a nearby-now dashboard, side-by-side comparison, editorial neighborhood guides, and planning from saved cafés. The production map experience remains at `/`.
+
 Café records and community actions are demo data in V1. Authentication, persistence, geocoding, and moderation are intentionally deferred.
 
 ## Run locally
