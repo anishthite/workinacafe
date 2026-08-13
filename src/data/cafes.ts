@@ -1,3 +1,5 @@
+import { IMPORTED_CAFES } from "./cafes.imported";
+
 export type FilterId =
   | "open"
   | "wifi"
@@ -186,6 +188,8 @@ export const CAFES: Cafe[] = [
     color: "green",
     rotation: 1,
   },
+  // Real cafés imported from OpenStreetMap. See docs/cafe-scraping-methodology.md.
+  ...IMPORTED_CAFES,
 ];
 
 export function cafeMatchesFilters(cafe: Cafe, filters: Set<FilterId>) {
