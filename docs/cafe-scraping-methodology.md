@@ -1,112 +1,149 @@
-# Café scraping methodology
+# Café research, screening, and import methodology
 
-How the imported café records in `src/data/cafes.imported.ts` were produced, so
-the next batch is reproducible and the data provenance is honest.
+This document records how the café lists in `src/data/cafes.imported.ts` are
+produced and audited. It is designed to make the next research pass repeatable,
+honest about what we know, and easy to improve.
 
-## Goal
+## What “good to work from” means in this dataset
 
-Grow the Workspot map beyond the six hand-authored demo cafés by importing
-**real** cafés near the map center, without fabricating the work-signal fields
-we cannot actually measure.
+This is an **evidence-based discovery list**, not a definitive statement that a
+café is laptop-friendly. An imported café is eligible only when OpenStreetMap
+(OSM) provides evidence of all of the following:
 
-## Source
+1. It is tagged `amenity=cafe`, has a name, and has mappable coordinates.
+2. It has a complete street address (`addr:housenumber` and `addr:street`).
+3. It has explicit positive internet access: `internet_access=yes`, `wlan`, or
+   `wifi`.
+4. It is not explicitly mapped as `indoor_seating=no`.
 
-- **OpenStreetMap** (OSM), queried through the **Overpass API**
-  (`https://overpass-api.de/api/interpreter`).
-- OSM data is © OpenStreetMap contributors, licensed under the
-  [ODbL](https://www.openstreetmap.org/copyright). Any published use must keep
-  that attribution.
+Those are the **required gates**. They ensure the map has a real, locatable café
+with mapped Wi-Fi and no evidence that it is standing/outdoor-only. They do not
+prove outlet availability, seat availability, laptop policy, noise, or calls.
+Those require a current community check-in and remain unverified in the UI.
 
-OSM was chosen over Google Places / Yelp because it is openly licensed,
-free to query, and requires no API key — so this import is fully reproducible
-by anyone with the repo.
+The post-gate **quality score** ranks richer OSM evidence without excluding a
+qualifying café:
 
-## Search parameters
+| Evidence | Points | Reason |
+| --- | ---: | --- |
+| Listed, non-closure `opening_hours` tag | 2 | Stronger evidence the listing is maintained and usable to plan a visit |
+| Official/contact website | 1 | Provides a path to verify before visiting |
+| Phone/contact phone | 1 | Provides a second verification path |
+| Coffee/café/tea/bakery/breakfast/pastry/donut/dessert/boba tag | 1 | Indicates it is plausibly a beverage/food venue rather than a miscoded listing |
+| `indoor_seating=yes` | 1 | Positive interior seating evidence |
+| Outdoor-seat tag of `yes`, `sidewalk`, `patio`, or `terrace` | 1 | Additional seating option |
 
-The scraper searches `amenity=cafe` nodes and ways within a radius of the map
-center used by the app (`MAP_CENTER` in `src/components/cafe-explorer.tsx`).
+Results are sorted by score, then distance from the app map center, then name.
+The score says **how well documented** a candidate is; it does not claim one
+café is better than another for focused work.
 
-| Parameter | Value | Why |
-| --- | --- | --- |
-| Center | `[-122.4216, 37.7708]` | Same center the map renders around |
-| Radius | `2500 m` | Roughly the zoom-13.2 viewport across SF's Mission/Hayes core |
-| Element types | `node`, `way` | Cafés are mapped as both points and building footprints |
-| Limit | `28` | "A whole bunch" while keeping the list scannable |
+## Source and license
 
-Overpass QL query (see `scripts/scrape-cafes.mjs`):
+- **OpenStreetMap**, queried through the **Overpass API**.
+- OSM data is © OpenStreetMap contributors and available under the
+  [Open Database License](https://www.openstreetmap.org/copyright). Keep the
+  source attribution in generated data and in any published use.
 
-```overpassql
-[out:json][timeout:60];
-(
-  node["amenity"="cafe"](around:2500,37.7708,-122.4216);
-  way["amenity"="cafe"](around:2500,37.7708,-122.4216);
-);
-out center tags;
+OSM is used because it is open, requires no account or API key, and lets the
+entire import be reproduced without copying closed-directory reviews or
+ratings.
+
+## Closed-PR audit (2026-08-13)
+
+The repository had three closed PRs. Only [PR #3](https://github.com/anishthite/workinacafe/pull/3)
+added real café records; PRs #1 and #2 added the app and renamed the brand.
+
+PR #3’s 28 records all resolve to real, currently mapped OSM `amenity=cafe`
+features near the original map center. It was a **broad proximity import**, not
+a work-café quality screen:
+
+| Audit field for the 28 PR #3 records | Count |
+| --- | ---: |
+| Resolves to an OSM café feature | 28 / 28 |
+| Explicit positive Wi‑Fi tag | 3 / 28 |
+| Complete OSM street address | 21 / 28 |
+| Non-closure `opening_hours` tag | 11 / 28 |
+| Explicit `indoor_seating=no` | 1 / 28 |
+
+Conclusion: the prior records are legitimate café leads and are appropriately
+marked as unverified community imports, but 25/28 lack mapped Wi‑Fi evidence,
+so they should not be described as validated work cafés. The screened list in
+this change replaces that broad batch with candidates that pass the gates above.
+
+## Current research run (2026-08-13)
+
+The search covers San Francisco proper, rather than a small radius around the
+initial map center, so the expanded list represents the city instead of only
+Mission/Hayes. The bounding box deliberately excludes neighboring cities.
+
+| Parameter | Value |
+| --- | --- |
+| South / west / north / east | `37.7034, -122.5270, 37.8120, -122.3482` |
+| OSM feature type | `node`, `way`, `relation` tagged `amenity=cafe` |
+| Retrieval endpoint | `overpass-api.de`, with `overpass.kumi.systems` fallback |
+| Default output limit | 100 qualified results |
+| Snapshot result | 793 OSM elements → 96 evidence-qualified locations → 96 emitted |
+
+There are 96 results rather than an arbitrary 100 because 96 is the complete
+set that passed the stated gates in this snapshot. Including four weaker
+locations only to reach 100 would make the data less trustworthy.
+
+### Reproduce the exact workflow
+
+```bash
+node scripts/scrape-cafes.mjs > src/data/cafes.imported.ts
+npm run lint && npx tsc --noEmit && npm run build
 ```
+
+The generated output is deterministic for a particular OSM snapshot. OSM is
+live data, so a later run may add, remove, or update candidates. The script
+tries a second public Overpass endpoint if the primary is busy.
 
 ## Pipeline
 
-1. **Fetch** all `amenity=cafe` elements in radius (287 elements in the first run).
-2. **Filter** to elements that have a `name` and coordinates.
-3. **De-duplicate** by lowercased name, and drop any name that collides with the
-   existing demo cafés.
-4. **Map** each element to a `Cafe` record (see field provenance below).
-5. **Sort** by distance from the map center and take the closest `--limit`.
-6. **Emit** a complete TypeScript module (`IMPORTED_CAFES: Cafe[]`).
+1. Fetch every `amenity=cafe` node, way, and relation inside the San Francisco
+   bounding box.
+2. Drop unnamed and unmappable features, fictional demo-name collisions, and
+   records that fail any required work-café evidence gate.
+3. De-duplicate by normalized name + house number + street. This retains
+   distinct branches at different addresses.
+4. Score remaining candidates using the documentation-quality metric above.
+5. Sort by score, distance to `MAP_CENTER`, and name; apply `--limit`.
+6. Emit the full `IMPORTED_CAFES` TypeScript module with a stable OSM feature ID
+   (`osm-{type}-{id}-{slug}`), so same-name branches cannot collide in the UI.
 
-First run: `287 elements → 248 named unique cafés → 28 emitted`.
+## Field provenance and intentional defaults
 
-## Field provenance
+Every generated record has `submitted: true`, `confirmations: 0`, and a prompt
+to add a community check. That keeps source-derived discovery data visually
+distinct from actual community confirmation.
 
-We only claim what OSM can support. Everything else is a clearly-neutral
-placeholder, and every imported café is flagged `submitted: true` so the UI
-renders it as an unverified community import (the "New community spot" badge)
-with `confirmations: 0`.
+| Field | Source / handling |
+| --- | --- |
+| `id` | OSM element type + element ID + name slug |
+| `name` | OSM `name`, verbatim |
+| coordinates | OSM node coordinate or way/relation center; rounded to four decimals |
+| `address` | OSM house number + street (required) |
+| `distance` | Derived with Haversine distance from the map center |
+| `neighborhood` | Derived from nearest curated SF neighborhood centroid; heuristic only |
+| `wifi` | Explicit positive OSM `internet_access` gate → `Good` |
+| `outdoor` | OSM `outdoor_seating`; `yes`, `sidewalk`, `patio`, or `terrace` → true |
+| `accessible` | OSM `wheelchair=yes` only |
+| `color`, `rotation` | Deterministic presentation values |
+| `outlets`, `noise`, `calls`, `price` | Neutral placeholders; no quality claim is made |
+| `seatTip`, `laptopPolicy` | Explicitly asks for community confirmation |
+| `isOpen`, `closesAt` | Not a live-hours system; set to tentative `true` / `Hours vary` even when OSM has `opening_hours` |
 
-| Field | Source | Notes |
-| --- | --- | --- |
-| `name` | OSM `name` | Verbatim |
-| `latitude` / `longitude` | OSM node / way center | Rounded to 4 dp |
-| `address` | OSM `addr:housenumber` + `addr:street` | Falls back to "Address needs confirmation" |
-| `distance` | Computed | Haversine from map center, in miles |
-| `neighborhood` | **Derived (heuristic)** | Nearest of a curated SF neighborhood centroid list; OSM cafés rarely carry a reliable neighborhood tag |
-| `wifi` | OSM `internet_access` | `wlan`/`yes`/`wifi` → "Good", else "Okay" (type has no "Unknown") |
-| `outdoor` | OSM `outdoor_seating` | `yes` → true |
-| `accessible` | OSM `wheelchair` | `yes` → true |
-| `color` | Derived | Cycles green/blue/amber/pink by distance order |
-| `rotation` | Derived | Deterministic hash of the id, range −3..2 |
-| `outlets` | **Placeholder** | Not in OSM → "A few" |
-| `noise` | **Placeholder** | Not in OSM → "Conversational" |
-| `calls` | **Placeholder** | Not in OSM → "Brief calls" |
-| `price` | **Placeholder** | OSM price data is unreliable → "$$" |
-| `seatTip` / `laptopPolicy` | **Placeholder** | Human knowledge → "not yet confirmed" copy |
-| `isOpen` / `closesAt` | **Not scraped** | Live "open now" needs an `opening_hours` parser + timezone-aware clock; set to `true` / "Hours vary" and flagged for follow-up |
+## How to improve the method
 
-### Known limitations / follow-ups
-
-- **Live hours are not modeled.** Every import shows as tentatively open. A real
-  follow-up would parse OSM `opening_hours` against the current time.
-- **Neighborhood is a nearest-centroid guess**, not a polygon lookup. Cafés on a
-  boundary can land in a neighbor. A future pass could use OSM boundary
-  relations or a reverse-geocode.
-- **Work signals (outlets/noise/calls/tips/policy) are placeholders** by design —
-  these are exactly the community-confirmed fields Workspot exists to collect, so
-  they should come from real check-ins, not scraping.
-
-## Reproduce / regenerate
-
-```bash
-node scripts/scrape-cafes.mjs > src/data/cafes.imported.ts   # default: 28 cafés, 2500 m
-node scripts/scrape-cafes.mjs --limit 40 --radius 4000 > src/data/cafes.imported.ts
-npm run lint && npx tsc --noEmit && npm run build             # validate
-```
-
-The generated file is deterministic for a given OSM snapshot, so re-running only
-changes records when the underlying OSM data changes.
-
-## Scaling to "a whole bunch more"
-
-- Raise `--limit` and `--radius`, or run several centers to cover more of SF.
-- Add richer OSM tags (`cuisine`, `takeaway`, `opening_hours`) to the mapper.
-- Keep generated data in `cafes.imported.ts` only — never hand-edit it, so a
-  future re-scrape stays a one-command operation.
+- Add timestamped, first-party café website checks for current hours and laptop
+  policy, storing the source URL and check date rather than treating a page as
+  permanent truth.
+- Add community check-ins for outlets, seating availability, noise, calls, and
+  laptop policy; make those fields eligible for “confirmed” filters only after
+  multiple recent independent reports.
+- Use neighborhood polygons or reverse geocoding instead of nearest centroids.
+- Add a parser for OSM `opening_hours` with the café’s local timezone; do not
+  use raw hours to imply that a venue is open now.
+- Periodically rerun the script, diff the generated output, and manually inspect
+  removals, address changes, and any newly qualifying locations before release.
