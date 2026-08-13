@@ -32,6 +32,15 @@ export type Cafe = {
   color: "green" | "blue" | "amber" | "pink";
   rotation: number;
   submitted?: boolean;
+  partner?: {
+    detailsUpdated: string;
+    workdayPass?: {
+      price: string;
+      hours: string;
+      includes: string;
+      availability: string;
+    };
+  };
 };
 
 export const FILTERS: { id: FilterId; label: string }[] = [
@@ -67,6 +76,15 @@ export const CAFES: Cafe[] = [
     accessible: true,
     color: "green",
     rotation: -2,
+    partner: {
+      detailsUpdated: "2 days ago",
+      workdayPass: {
+        price: "$12",
+        hours: "9 AM–1 PM · Tue–Thu",
+        includes: "Filter coffee + a reserved desk",
+        availability: "6 spots per day",
+      },
+    },
   },
   {
     id: "field-day",

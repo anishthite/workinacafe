@@ -32,6 +32,10 @@ import { useEffect, useMemo, useState } from "react";
 import { AddCafeDialog } from "@/components/add-cafe-dialog";
 import { CafeSketch } from "@/components/cafe-sketch";
 import {
+  MonetizationDialog,
+  type MonetizationOffer,
+} from "@/components/monetization-dialog";
+import {
   Map,
   MapControls,
   MapMarker,
@@ -156,16 +160,33 @@ function EmptyResults({ clearFilters }: { clearFilters: () => void }) {
   );
 }
 
+function OwnerCallout({ onClaim }: { onClaim: () => void }) {
+  return (
+    <section className="owner-callout rough-surface">
+      <div>
+        <span className="eyebrow"><BadgeCheck aria-hidden="true" /> Café owner?</span>
+        <h3>Make your work details easy to trust.</h3>
+        <p>Claim a verified profile. It is disclosed and never affects community ranking.</p>
+      </div>
+      <button className="text-button" onClick={onClaim} type="button">
+        Partner with us →
+      </button>
+    </section>
+  );
+}
+
 function CafeDetail({
   cafe,
   saved,
   onBack,
+  onOpenOffer,
   onToggleSaved,
   onToast,
 }: {
   cafe: Cafe;
   saved: boolean;
   onBack: () => void;
+  onOpenOffer: (offer: MonetizationOffer) => void;
   onToggleSaved: () => void;
   onToast: (message: string) => void;
 }) {
@@ -208,9 +229,20 @@ function CafeDetail({
         <div className={cafe.isOpen ? "open-state" : "open-state is-closed"}>
           <span /> {cafe.isOpen ? `Open · until ${cafe.closesAt}` : `Closed · ${cafe.closesAt}`}
         </div>
+        {cafe.partner && (
+          <div className="partner-status">
+            <BadgeCheck aria-hidden="true" />
+            <span>Owner-verified work details · updated {cafe.partner.detailsUpdated}</span>
+          </div>
+        )}
       </div>
 
-      <div className="detail-actions">
+      <div className={cafe.partner?.workdayPass ? "detail-actions detail-actions--with-pass" : "detail-actions"}>
+        {cafe.partner?.workdayPass && (
+          <button className="sketch-button sketch-button--pass" onClick={() => onOpenOffer("workday-pass")} type="button">
+            <Coffee aria-hidden="true" /> Workday pass · {cafe.partner.workdayPass.price}
+          </button>
+        )}
         <a className="sketch-button sketch-button--primary hachure-fill" href={directionsUrl} rel="noreferrer" target="_blank">
           <Navigation aria-hidden="true" /> Directions
         </a>
@@ -259,6 +291,15 @@ function CafeDetail({
         <button onClick={() => onToast("Photo uploads are queued for V1.1.")} type="button"><Camera aria-hidden="true" /> Add workspace photo</button>
         <button onClick={() => onToast("Thanks — a moderator will take a look.")} type="button"><Flag aria-hidden="true" /> Report an issue</button>
       </div>
+
+      <section className="detail-owner-cta">
+        <div>
+          <span className="eyebrow"><BadgeCheck aria-hidden="true" /> Café owner?</span>
+          <h3>Keep your work profile current.</h3>
+          <p>Verified partners are disclosed; they never get a ranking boost.</p>
+        </div>
+        <button className="text-button" onClick={() => onOpenOffer("partner")} type="button">Explore partner beta →</button>
+      </section>
     </div>
   );
 }
@@ -271,6 +312,7 @@ export function CafeExplorer() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [communityCafes, setCommunityCafes] = useState<Cafe[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [monetizationOffer, setMonetizationOffer] = useState<MonetizationOffer | null>(null);
   const [mapMoved, setMapMoved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -367,6 +409,7 @@ export function CafeExplorer() {
             <CafeDetail
               cafe={selectedCafe}
               onBack={() => setSelectedId(null)}
+              onOpenOffer={setMonetizationOffer}
               onToast={setToast}
               onToggleSaved={() => toggleSaved(selectedCafe.id)}
               saved={savedIds.has(selectedCafe.id)}
@@ -420,6 +463,7 @@ export function CafeExplorer() {
                 {visibleCafes.length === 0 && (
                   <EmptyResults clearFilters={() => { setFilters(new Set()); setQuery(""); }} />
                 )}
+                {visibleCafes.length > 0 && <OwnerCallout onClaim={() => setMonetizationOffer("partner")} />}
               </div>
             </>
           )}
@@ -508,6 +552,16 @@ export function CafeExplorer() {
       </div>
 
       <AddCafeDialog open={addOpen} onClose={() => setAddOpen(false)} onPublish={publishCafe} />
+      <MonetizationDialog
+        cafe={selectedCafe ?? CAFES[0]}
+        key={monetizationOffer ?? "closed"}
+        offer={monetizationOffer}
+        onClose={() => setMonetizationOffer(null)}
+        onComplete={(message) => {
+          setMonetizationOffer(null);
+          setToast(message);
+        }}
+      />
 
       {toast && (
         <div aria-live="polite" className="toast rough-surface" role="status">
