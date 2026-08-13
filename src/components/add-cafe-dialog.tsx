@@ -319,7 +319,7 @@ export function AddCafeDialog({ open, onClose, onPublish }: AddCafeDialogProps) 
               </div>
               <div className="review-sheet hachure-fill">
                 <div>
-                  <span className="eyebrow">New workspot</span>
+                  <span className="eyebrow">New café</span>
                   <h3>{draft.name}</h3>
                   <p>{draft.address}</p>
                 </div>
@@ -376,7 +376,7 @@ export function AddCafeDialog({ open, onClose, onPublish }: AddCafeDialogProps) 
               onClick={publish}
               type="button"
             >
-              Publish workspot <Check aria-hidden="true" />
+              Publish café <Check aria-hidden="true" />
             </button>
           )}
         </footer>

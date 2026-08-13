@@ -1776,7 +1776,8 @@
   }
 
   .wordmark {
-    font-size: 0;
+    font-size: 1.1rem;
+    gap: 7px;
   }
 
   .wordmark__mark {

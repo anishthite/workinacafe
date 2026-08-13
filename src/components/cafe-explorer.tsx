@@ -147,7 +147,7 @@ function EmptyResults({ clearFilters }: { clearFilters: () => void }) {
   return (
     <div className="empty-results">
       <span className="empty-results__doodle">?</span>
-      <h3>No workspots match that sketch.</h3>
+      <h3>No cafés match that sketch.</h3>
       <p>Try removing a filter or searching another neighborhood.</p>
       <button className="text-button" onClick={clearFilters} type="button">
         <X aria-hidden="true" /> Clear filters
@@ -328,7 +328,7 @@ export function CafeExplorer() {
   return (
     <main className="app-shell">
       <header className="topbar rough-surface">
-        <button className="wordmark" onClick={() => setSelectedId(null)} type="button">
+        <button aria-label="workina.cafe home" className="wordmark" onClick={() => setSelectedId(null)} type="button">
           <span className="wordmark__mark"><Coffee aria-hidden="true" /></span>
           <span>work<span>ina.cafe</span></span>
         </button>
@@ -350,7 +350,7 @@ export function CafeExplorer() {
         </label>
 
         <nav className="topbar__actions" aria-label="Account actions">
-          <button className="saved-link" onClick={() => setToast(savedIds.size ? `${savedIds.size} saved workspot${savedIds.size === 1 ? "" : "s"}.` : "No saved cafés yet.")} type="button">
+          <button className="saved-link" onClick={() => setToast(savedIds.size ? `${savedIds.size} saved café${savedIds.size === 1 ? "" : "s"}.` : "No saved cafés yet.")} type="button">
             <Bookmark aria-hidden="true" /> <span>Saved</span>
             {savedIds.size > 0 && <b>{savedIds.size}</b>}
           </button>
@@ -377,7 +377,7 @@ export function CafeExplorer() {
                 <div>
                   <span className="eyebrow"><Sparkles aria-hidden="true" /> Community checked</span>
                   <h1>Find your next desk away from home.</h1>
-                  <p>{visibleCafes.length} workspot{visibleCafes.length === 1 ? "" : "s"} around San Francisco</p>
+                  <p>{visibleCafes.length} café{visibleCafes.length === 1 ? "" : "s"} around San Francisco</p>
                 </div>
                 <button aria-label="Show filter options" className="icon-button filter-button" type="button">
                   <SlidersHorizontal aria-hidden="true" />
@@ -425,7 +425,7 @@ export function CafeExplorer() {
           )}
         </aside>
 
-        <section aria-label="Map of community café workspots" className="map-panel">
+        <section aria-label="Map of community cafés" className="map-panel">
           <Map
             center={MAP_CENTER}
             className="community-map"
