@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   BadgeCheck,
-  Bookmark,
   Camera,
   Check,
   Clock3,
@@ -94,18 +93,14 @@ function ResultCard({
   cafe,
   index,
   active,
-  saved,
   onSelect,
   onHover,
-  onToggleSaved,
 }: {
   cafe: Cafe;
   index: number;
   active: boolean;
-  saved: boolean;
   onSelect: () => void;
   onHover: (hovered: boolean) => void;
-  onToggleSaved: () => void;
 }) {
   return (
     <article
@@ -134,14 +129,6 @@ function ResultCard({
             <span>checked {cafe.freshness} by {cafe.confirmations}</span>
           </div>
         </div>
-      </button>
-      <button
-        aria-label={saved ? `Remove ${cafe.name} from saved cafés` : `Save ${cafe.name}`}
-        className={`save-button ${saved ? "is-saved" : ""}`}
-        onClick={onToggleSaved}
-        type="button"
-      >
-        <Bookmark aria-hidden="true" fill={saved ? "currentColor" : "none"} />
       </button>
     </article>
   );
@@ -177,17 +164,13 @@ function OwnerCallout({ onClaim }: { onClaim: () => void }) {
 
 function CafeDetail({
   cafe,
-  saved,
   onBack,
   onOpenOffer,
-  onToggleSaved,
   onToast,
 }: {
   cafe: Cafe;
-  saved: boolean;
   onBack: () => void;
   onOpenOffer: (offer: MonetizationOffer) => void;
-  onToggleSaved: () => void;
   onToast: (message: string) => void;
 }) {
   const directionsUrl = `https://www.openstreetmap.org/directions?to=${cafe.latitude}%2C${cafe.longitude}`;
@@ -199,14 +182,6 @@ function CafeDetail({
           <ArrowLeft aria-hidden="true" /> Back to the map
         </button>
         <div>
-          <button
-            aria-label={saved ? "Remove from saved cafés" : "Save café"}
-            className={`icon-button ${saved ? "is-saved" : ""}`}
-            onClick={onToggleSaved}
-            type="button"
-          >
-            <Bookmark aria-hidden="true" fill={saved ? "currentColor" : "none"} />
-          </button>
           <button
             aria-label="Share café"
             className="icon-button"
@@ -309,7 +284,6 @@ export function CafeExplorer() {
   const [filters, setFilters] = useState<Set<FilterId>>(new Set(["open"]));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [communityCafes, setCommunityCafes] = useState<Cafe[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [monetizationOffer, setMonetizationOffer] = useState<MonetizationOffer | null>(null);
@@ -346,20 +320,6 @@ export function CafeExplorer() {
     });
   };
 
-  const toggleSaved = (id: string) => {
-    setSavedIds((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-        setToast("Removed from your saved cafés.");
-      } else {
-        next.add(id);
-        setToast("Saved for your next work session ✦");
-      }
-      return next;
-    });
-  };
-
   const publishCafe = (cafe: Cafe) => {
     setCommunityCafes((current) => [cafe, ...current]);
     setSelectedId(cafe.id);
@@ -391,15 +351,10 @@ export function CafeExplorer() {
           <kbd>⌘ K</kbd>
         </label>
 
-        <nav className="topbar__actions" aria-label="Account actions">
-          <button className="saved-link" onClick={() => setToast(savedIds.size ? `${savedIds.size} saved café${savedIds.size === 1 ? "" : "s"}.` : "No saved cafés yet.")} type="button">
-            <Bookmark aria-hidden="true" /> <span>Saved</span>
-            {savedIds.size > 0 && <b>{savedIds.size}</b>}
-          </button>
+        <nav className="topbar__actions" aria-label="Café actions">
           <button className="sketch-button sketch-button--primary hachure-fill" onClick={() => setAddOpen(true)} type="button">
             <Plus aria-hidden="true" /> Add a café
           </button>
-          <button aria-label="Open profile" className="avatar-button" onClick={() => setToast("Profiles are coming in V1.1.")} type="button">AT</button>
         </nav>
       </header>
 
@@ -411,8 +366,6 @@ export function CafeExplorer() {
               onBack={() => setSelectedId(null)}
               onOpenOffer={setMonetizationOffer}
               onToast={setToast}
-              onToggleSaved={() => toggleSaved(selectedCafe.id)}
-              saved={savedIds.has(selectedCafe.id)}
             />
           ) : (
             <>
@@ -456,8 +409,6 @@ export function CafeExplorer() {
                     key={cafe.id}
                     onHover={(hovered) => setHoveredId(hovered ? cafe.id : null)}
                     onSelect={() => setSelectedId(cafe.id)}
-                    onToggleSaved={() => toggleSaved(cafe.id)}
-                    saved={savedIds.has(cafe.id)}
                   />
                 ))}
                 {visibleCafes.length === 0 && (

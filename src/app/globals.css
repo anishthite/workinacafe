@@ -347,35 +347,6 @@
   gap: 10px;
 }
 
-.saved-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 40px;
-  padding: 0 10px;
-  border: 0;
-  background: transparent;
-  color: var(--ink-soft);
-  font-size: 0.84rem;
-  cursor: pointer;
-}
-
-.saved-link svg {
-  width: 18px;
-  height: 18px;
-}
-
-.saved-link b {
-  display: grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--green-soft);
-  color: var(--green);
-  font-size: 0.68rem;
-}
-
 .sketch-button {
   display: inline-flex;
   align-items: center;
@@ -414,20 +385,6 @@
   border-color: var(--green);
   background-color: var(--green-soft);
   color: #086643;
-}
-
-.avatar-button {
-  display: grid;
-  width: 39px;
-  height: 39px;
-  place-items: center;
-  transform: rotate(2deg);
-  border: 2px solid var(--ink);
-  border-radius: 50% 46% 52% 48%;
-  background: var(--blue-soft);
-  color: var(--ink);
-  font-family: var(--font-virgil), cursive;
-  cursor: pointer;
 }
 
 .explorer-layout {
@@ -494,12 +451,6 @@
 
 .icon-button:active {
   transform: scale(0.95);
-}
-
-.icon-button.is-saved {
-  border-color: var(--green);
-  background: var(--green-soft);
-  color: var(--green);
 }
 
 .filter-button {
@@ -734,30 +685,6 @@
 .freshness svg {
   width: 13px;
   height: 13px;
-}
-
-.save-button {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: color-mix(in srgb, white 88%, transparent);
-  color: var(--ink-soft);
-  cursor: pointer;
-}
-
-.save-button svg {
-  width: 17px;
-  height: 17px;
-}
-
-.save-button.is-saved {
-  color: var(--green);
 }
 
 .cafe-sketch {
@@ -1980,8 +1907,7 @@
 
   .text-button:hover,
   .detail-links button:hover,
-  .verification-card button:hover,
-  .saved-link:hover {
+  .verification-card button:hover {
     color: var(--green);
   }
 }
@@ -2102,22 +2028,6 @@
   color: #745f36;
 }
 
-.app-shell .avatar-button {
-  width: 34px;
-  height: 34px;
-  transform: none;
-  border: 0;
-  border-radius: 50%;
-  background: #e6ece8;
-  color: #435347;
-  font-family: var(--font-geist-sans), Arial, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.app-shell .saved-link { height: 38px; color: #52605a; }
-.app-shell .saved-link b { background: var(--green-soft); }
-
 .app-shell .explorer-layout {
   grid-template-columns: 400px minmax(0, 1fr);
   height: calc(100dvh - 72px);
@@ -2212,15 +2122,6 @@
 }
 
 .app-shell .result-card__signals svg { color: var(--green); }
-
-.app-shell .save-button {
-  top: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: transparent;
-}
 
 .app-shell .cafe-sketch {
   transform: none;
@@ -2424,7 +2325,6 @@
     gap: 14px;
   }
 
-  .saved-link span,
   .global-search kbd {
     display: none;
   }
@@ -2459,9 +2359,7 @@
     height: 38px;
   }
 
-  .topbar__actions > .sketch-button,
-  .saved-link,
-  .avatar-button {
+  .topbar__actions > .sketch-button {
     display: none;
   }
 

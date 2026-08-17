@@ -16,7 +16,7 @@ A hand-drawn community map for finding cafés that are actually good to work fro
 - Keyboard, reduced-motion, and accessible-label support
 - Hand-drawn social preview card for Open Graph, Twitter/X, iMessage, Slack, and other link unfurls
 
-Café records and community actions are demo data in V1. Authentication, persistence, geocoding, and moderation are intentionally deferred.
+Café records and community actions are demo data in V1. User accounts, saved places, persistence, geocoding, and moderation are intentionally deferred.
 
 ## Run locally
 
