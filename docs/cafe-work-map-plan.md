@@ -26,7 +26,6 @@ Do not add both left and right rails. Selecting a café should change the left r
 - Large location-aware search: “Search city, neighborhood, or café”
 - Current-location control
 - Primary **Add a café** button
-- Saved places and profile/avatar
 
 **Left result rail**
 
@@ -62,7 +61,7 @@ There is no sidebar on mobile.
 
 Make the detail page factual and scannable before social.
 
-1. **Hero:** photo, name, open state, distance, Save, Share, Directions
+1. **Hero:** photo, name, open state, distance, Share, Directions
 2. **Workability summary:** separate scores/signals for Wi‑Fi, outlets, noise, seating, and calls
 3. **Laptop policy:** allowed, restricted hours, purchase/time limit, or unknown
 4. **Best seat tips:** concrete community notes such as “window bar has 6 outlets”
@@ -105,7 +104,6 @@ Use tap-friendly choices with **Unknown / Not sure** available. Never force fake
 
 - Show exactly what will become public.
 - Ask when the contributor last visited.
-- Require sign-in only when publishing, not at the start of the flow.
 - Publish as **community-submitted** until another member confirms it.
 - Return to the selected new pin with a clear success state and an invitation to share.
 
@@ -120,7 +118,7 @@ Freshness matters more than raw vote count.
 - Show “confirmed by 4 people in the last 30 days,” not lifetime likes.
 - Flag contradictory reports for moderator review.
 - Keep edits reversible with a simple contribution history.
-- Rate-limit new accounts and photo uploads.
+- Rate-limit anonymous contributions and photo uploads.
 - Let café owners claim a page, but visually distinguish owner-provided facts from community observations.
 
 Suggested listing states: `pending`, `published`, `needs_review`, `closed`.
@@ -132,7 +130,6 @@ Suggested listing states: `pending`, `published`, `needs_review`, `closed`.
 - **SeatTip:** café, short location note, optional workspace photo, helpful count
 - **Contribution:** author, café, changed fields, visited date, evidence, moderation state
 - **Confirmation:** member, café/field, accurate or outdated, timestamp
-- **Save:** member and café
 
 Store location as a geospatial point and query by the current map bounds. Return only fields needed for pins/cards until a café is selected.
 
@@ -182,7 +179,6 @@ Keep the first version conventional:
 - Tailwind CSS + shadcn/ui
 - mapcn / MapLibre GL
 - Postgres with PostGIS (a managed service such as Supabase is fine)
-- Email/social auth only when saving, confirming, or publishing
 - Object storage for resized workspace photos
 - Server-side geocoding proxy with caching and provider attribution
 
@@ -202,25 +198,23 @@ Do not introduce a separate search service until Postgres text + geospatial sear
 
 ### Phase 2 — Contributions
 
-- Authentication at publish/save time
+- Anonymous contribution flow with abuse safeguards
 - Add-café flow with place deduplication and draggable pin
 - Structured work-profile form, photo upload, draft restore
 - Suggest-edit and confirm-details actions
 
-**Done when:** a member can add a café without creating an obvious duplicate and can correct stale information without replacing the whole listing.
+**Done when:** a visitor can add a café without creating an obvious duplicate and can correct stale information without replacing the whole listing.
 
 ### Phase 3 — Trust and moderation
 
 - Freshness labels and field-level provenance
 - Review queue, reports, reversible changes
-- Contributor profiles and lightweight reputation
 - Claimed-owner metadata separated from community observations
 
 **Done when:** stale or conflicting information is visible, reviewable, and recoverable.
 
 ### Phase 4 — Retention and polish
 
-- Saved cafés and shareable collections
 - “Recently verified near you” prompts
 - Better photo gallery and seat-tip ranking
 - Accessibility/performance pass and real-device gesture tuning
@@ -229,6 +223,7 @@ Do not introduce a separate search service until Postgres text + geospatial sear
 ## 11. Explicit non-goals for the first release
 
 - No social feed, DMs, follower graph, or comments thread
+- No public user accounts or saved-place lists
 - No reservations or payments
 - No live occupancy claims unless backed by reliable data
 - No indoor floor-plan editor

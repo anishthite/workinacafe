@@ -3,7 +3,6 @@
 import {
   ArrowRight,
   ArrowUpRight,
-  Bookmark,
   CalendarDays,
   Check,
   ChevronRight,
@@ -78,7 +77,7 @@ const DIRECTIONS: Direction[] = [
     number: "05",
     name: "Workday Planner",
     shortName: "Plan",
-    premise: "A saved-place planner that turns cafés into a lightweight work ritual.",
+    premise: "A lightweight workday planner that turns a café decision into a simple ritual.",
     bestFor: "Repeat weekly routines",
   },
 ];
@@ -130,7 +129,6 @@ function FocusFinder() {
       <div className="match-topline">
         <Link href="/" className="prototype-wordmark"><Coffee aria-hidden="true" /> workina.cafe</Link>
         <span><MapPin aria-hidden="true" /> Mission, San Francisco</span>
-        <button type="button" aria-label="Open saved cafés"><Bookmark aria-hidden="true" /> 8 saved</button>
       </div>
 
       <div className="match-hero">
@@ -181,7 +179,6 @@ function FocusFinder() {
 function RightNow() {
   const [activeId, setActiveId] = useState("juniper");
   const activeCafe = byId(activeId);
-  const [saved, setSaved] = useState(false);
 
   return (
     <section className="direction-screen direction-screen--now">
@@ -189,7 +186,6 @@ function RightNow() {
         <Link href="/" className="prototype-wordmark"><Coffee aria-hidden="true" /> workina.cafe</Link>
         <label><Search aria-hidden="true" /><input aria-label="Search a café" placeholder="Search nearby" /><kbd>⌘K</kbd></label>
         <button type="button"><MapPin aria-hidden="true" /> Mission</button>
-        <button className="now-avatar" type="button">AT</button>
       </header>
 
       <div className="now-layout">
@@ -210,7 +206,7 @@ function RightNow() {
           <div className="now-location"><span /><small>You are here</small></div>
           <div className="now-map__controls"><button type="button">+</button><button type="button">−</button><button type="button"><Compass aria-hidden="true" /></button></div>
           <div className="now-selected-card">
-            <div><span className={activeCafe.isOpen ? "status-open" : "status-open is-closed"}>{activeCafe.isOpen ? "Open now" : "Closed"}</span><button aria-label="Save café" className={saved ? "is-saved" : ""} onClick={() => setSaved(!saved)} type="button"><Bookmark aria-hidden="true" fill={saved ? "currentColor" : "none"} /></button></div>
+            <div><span className={activeCafe.isOpen ? "status-open" : "status-open is-closed"}>{activeCafe.isOpen ? "Open now" : "Closed"}</span></div>
             <h2>{activeCafe.name}</h2><p><MapPin aria-hidden="true" /> {activeCafe.distance} · {activeCafe.neighborhood}</p>
             <WorkSignals cafe={activeCafe} />
             <button className="prototype-primary-button" type="button">Directions <ArrowUpRight aria-hidden="true" /></button>
@@ -236,7 +232,7 @@ function Compare() {
 
   return (
     <section className="direction-screen direction-screen--compare">
-      <header className="compare-header"><Link href="/" className="prototype-wordmark"><Coffee aria-hidden="true" /> workina.cafe</Link><nav><a href="#compare">Discover</a><a className="is-current" href="#compare">Shortlist <b>2</b></a><a href="#compare">Neighborhoods</a></nav><button type="button"><Bookmark aria-hidden="true" /> Saved</button></header>
+      <header className="compare-header"><Link href="/" className="prototype-wordmark"><Coffee aria-hidden="true" /> workina.cafe</Link><nav><a href="#compare">Discover</a><a className="is-current" href="#compare">Shortlist <b>2</b></a><a href="#compare">Neighborhoods</a></nav></header>
       <main className="compare-main">
         <div className="compare-intro"><span className="prototype-kicker">Your Thursday shortlist</span><h1>Two places.<br />One easy decision.</h1><p>Compare the details that actually affect a work session, then be on your way.</p></div>
         <div className="compare-grid">
@@ -265,7 +261,7 @@ function NeighborhoodGuide() {
 
   return (
     <section className="direction-screen direction-screen--guide">
-      <header className="guide-header"><Link href="/" className="prototype-wordmark"><Coffee aria-hidden="true" /> workina.cafe</Link><nav><a href="#guide">Find a desk</a><a className="is-current" href="#guide">Neighborhood notes</a><a href="#guide">Saved</a></nav><button type="button"><Search aria-hidden="true" /> Search</button></header>
+      <header className="guide-header"><Link href="/" className="prototype-wordmark"><Coffee aria-hidden="true" /> workina.cafe</Link><nav><a href="#guide">Find a desk</a><a className="is-current" href="#guide">Neighborhood notes</a></nav><button type="button"><Search aria-hidden="true" /> Search</button></header>
       <main className="guide-main">
         <div className="guide-hero"><span className="prototype-kicker"><Route aria-hidden="true" /> Field guide no. 04</span><h1>A workday<br /><em>around the Mission.</em></h1><p>Three café moods, a 22-minute walk, and enough local detail to find a desk that fits the way you want to spend today.</p><div className="guide-meta"><span><MapPin aria-hidden="true" /> 0.9 mile loop</span><span><Clock3 aria-hidden="true" /> Best 10am–3pm</span><span><Users aria-hidden="true" /> 36 recent notes</span></div></div>
         <div className="guide-map" aria-label="An illustrated route through the Mission"><div className="guide-map__path" /><span className="guide-map__neighborhood guide-map__neighborhood--one">Dolores<br />Park</span><span className="guide-map__neighborhood guide-map__neighborhood--two">Valencia<br />Street</span>{guideStops.map((cafe, index) => <button className={`guide-stop guide-stop--${index + 1} ${spot === index ? "is-active" : ""}`} key={cafe.id} onClick={() => setSpot(index)} type="button"><b>{index + 1}</b><span>{cafe.name}</span></button>)}<div className="guide-map__legend"><span><i /> walk route</span><span><b>1</b> work stop</span></div></div>
@@ -289,8 +285,8 @@ function WorkdayPlanner() {
 
   return (
     <section className="direction-screen direction-screen--session">
-      <aside className="session-rail"><Link href="/" className="session-logo"><Coffee aria-hidden="true" /></Link><nav><button className="is-current" type="button"><CalendarDays aria-hidden="true" /><span>My day</span></button><button type="button"><Compass aria-hidden="true" /><span>Explore</span></button><button type="button"><Bookmark aria-hidden="true" /><span>Saved</span><b>8</b></button></nav><div className="session-rail__bottom"><button type="button"><Plus aria-hidden="true" /> New session</button><button className="now-avatar" type="button">AT</button></div></aside>
-      <main className="session-main"><header><div><span>Thursday, October 24</span><h1>Good afternoon, Anish.</h1></div><button className="session-weather" type="button"><span>19°</span><Trees aria-hidden="true" /> Patio weather</button></header><section className="session-overview"><div className="session-date"><button type="button">‹</button><div><span>OCT</span><strong>24</strong><small>THU</small></div><button type="button">›</button></div><div><span className="prototype-kicker"><Sparkles aria-hidden="true" /> Today’s intention</span><h2>Two quiet hours,<br />somewhere with power.</h2></div><div className="session-progress"><strong>2 <small>/ 4</small></strong><span>sessions complete</span><div><i /><i /><i /><i /></div></div></section><section className="session-content"><div className="session-timeline"><div className="session-section-title"><h2>Your workday</h2><button type="button">Edit day</button></div>{schedule.map((item) => <button className={`timeline-item is-${item.status} ${selectedSlot === item.time ? "is-selected" : ""}`} key={item.time} onClick={() => setSelectedSlot(item.time)} type="button"><time>{item.time}</time><span className="timeline-item__line"><i /></span><span><strong>{item.title}</strong><small>{item.detail}</small></span>{item.status === "done" ? <Check aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}</button>)}</div><aside className="session-detail"><span className="prototype-kicker"><Coffee aria-hidden="true" /> {selectedSlot === "1:30 PM" ? "Your next session" : "Session details"}</span><h2>{selectedSlot === "1:30 PM" ? "A focused afternoon at Juniper." : schedule.find((item) => item.time === selectedSlot)?.title}</h2>{selectedSlot === "1:30 PM" ? <><div className="session-cafe"><CafeSketch cafe={cafe} /><div><strong>{cafe.name}</strong><span><MapPin aria-hidden="true" /> 6 min walk</span><span className="status-open">Open until {cafe.closesAt}</span></div></div><WorkSignals cafe={cafe} /><p className="session-quote">“{cafe.seatTip}”</p><button className="prototype-primary-button" type="button">Start directions <Navigation aria-hidden="true" /></button><button className="prototype-text-button" onClick={() => setAdded(!added)} type="button">{added ? "Added to your schedule" : "Add a 4pm backup"} <Plus aria-hidden="true" /></button></> : <><p className="session-empty">A little structure goes a long way. Add a café, a task, or leave yourself room to wander.</p><button className="prototype-secondary-button" type="button"><Plus aria-hidden="true" /> Add a work session</button></>}</aside></section></main>
+      <aside className="session-rail"><Link href="/" className="session-logo"><Coffee aria-hidden="true" /></Link><nav><button className="is-current" type="button"><CalendarDays aria-hidden="true" /><span>Plan</span></button><button type="button"><Compass aria-hidden="true" /><span>Explore</span></button></nav><div className="session-rail__bottom"><button type="button"><Plus aria-hidden="true" /> New session</button></div></aside>
+      <main className="session-main"><header><div><span>Thursday, October 24</span><h1>Plan your afternoon.</h1></div><button className="session-weather" type="button"><span>19°</span><Trees aria-hidden="true" /> Patio weather</button></header><section className="session-overview"><div className="session-date"><button type="button">‹</button><div><span>OCT</span><strong>24</strong><small>THU</small></div><button type="button">›</button></div><div><span className="prototype-kicker"><Sparkles aria-hidden="true" /> Today’s intention</span><h2>Two quiet hours,<br />somewhere with power.</h2></div><div className="session-progress"><strong>2 <small>/ 4</small></strong><span>sessions complete</span><div><i /><i /><i /><i /></div></div></section><section className="session-content"><div className="session-timeline"><div className="session-section-title"><h2>Your workday</h2><button type="button">Edit day</button></div>{schedule.map((item) => <button className={`timeline-item is-${item.status} ${selectedSlot === item.time ? "is-selected" : ""}`} key={item.time} onClick={() => setSelectedSlot(item.time)} type="button"><time>{item.time}</time><span className="timeline-item__line"><i /></span><span><strong>{item.title}</strong><small>{item.detail}</small></span>{item.status === "done" ? <Check aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}</button>)}</div><aside className="session-detail"><span className="prototype-kicker"><Coffee aria-hidden="true" /> {selectedSlot === "1:30 PM" ? "Next session" : "Session details"}</span><h2>{selectedSlot === "1:30 PM" ? "A focused afternoon at Juniper." : schedule.find((item) => item.time === selectedSlot)?.title}</h2>{selectedSlot === "1:30 PM" ? <><div className="session-cafe"><CafeSketch cafe={cafe} /><div><strong>{cafe.name}</strong><span><MapPin aria-hidden="true" /> 6 min walk</span><span className="status-open">Open until {cafe.closesAt}</span></div></div><WorkSignals cafe={cafe} /><p className="session-quote">“{cafe.seatTip}”</p><button className="prototype-primary-button" type="button">Start directions <Navigation aria-hidden="true" /></button><button className="prototype-text-button" onClick={() => setAdded(!added)} type="button">{added ? "Added to this plan" : "Add a 4pm backup"} <Plus aria-hidden="true" /></button></> : <><p className="session-empty">A little structure goes a long way. Add a café, a task, or leave yourself room to wander.</p><button className="prototype-secondary-button" type="button"><Plus aria-hidden="true" /> Add a work session</button></>}</aside></section></main>
     </section>
   );
 }

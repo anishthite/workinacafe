@@ -18,9 +18,9 @@ A hand-drawn community map for finding cafés that are actually good to work fro
 
 ## UI direction lab
 
-Five interactive alternate interface concepts live at [/prototypes](/prototypes). They explore needs-first matching, a nearby-now dashboard, side-by-side comparison, editorial neighborhood guides, and planning from saved cafés. The production map experience remains at `/`.
+Five interactive alternate interface concepts live at [/prototypes](/prototypes). They explore needs-first matching, a nearby-now dashboard, side-by-side comparison, editorial neighborhood guides, and workday planning. The production map experience remains at `/`.
 
-Café records and community actions are demo data in V1. Authentication, persistence, geocoding, and moderation are intentionally deferred.
+Café records and community actions are demo data in V1. User accounts, saved places, persistence, geocoding, and moderation are intentionally deferred.
 
 ## Run locally
 

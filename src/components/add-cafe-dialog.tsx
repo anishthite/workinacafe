@@ -346,7 +346,7 @@ export function AddCafeDialog({ open, onClose, onPublish }: AddCafeDialogProps) 
                 </p>
               </div>
               <p className="dialog-footnote">
-                V1 keeps submissions in this browser. Account verification and
+                V1 keeps submissions in this browser. Persistent publishing and
                 moderator review are the next release.
               </p>
             </div>
