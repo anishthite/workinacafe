@@ -2403,6 +2403,138 @@
 
 .app-shell .eyebrow { gap: 5px; color: var(--green); font-size: 0.63rem; letter-spacing: 0.1em; }
 .app-shell .eyebrow svg { width: 12px; height: 12px; }
+.app-shell .work-mode-chooser {
+  margin: 0 24px 17px;
+  padding: 13px 13px 14px;
+  border: 1px dashed #ccb9a7;
+  border-radius: 11px 9px 12px 8px / 9px 12px 8px 11px;
+  background:
+    linear-gradient(112deg, rgb(255 255 255 / 44%), transparent 46%),
+    #f8f0e6;
+}
+
+.app-shell .work-mode-chooser__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.app-shell .work-mode-chooser__heading h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+}
+
+.app-shell .work-mode-reset {
+  flex: 0 0 auto;
+  padding: 2px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-size: 0.66rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.app-shell .work-mode-reset.is-active {
+  border-bottom-color: var(--green);
+  color: var(--green);
+}
+
+.app-shell .work-mode-card:focus-visible,
+.app-shell .work-mode-reset:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.app-shell .work-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.app-shell .work-mode-card {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 52px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  border: 1px solid #ddcfc0;
+  border-radius: 8px 10px 7px 9px / 10px 7px 9px 8px;
+  background: rgb(255 253 248 / 88%);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+}
+
+.app-shell .work-mode-card:nth-child(even) {
+  border-radius: 10px 7px 9px 8px / 7px 10px 8px 9px;
+}
+
+.app-shell .work-mode-card__icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 8px 6px 9px 7px / 6px 9px 7px 8px;
+  background: var(--paper-deep);
+  color: var(--green);
+}
+
+.app-shell .work-mode-card__icon svg { width: 15px; height: 15px; }
+
+.app-shell .work-mode-card__copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.app-shell .work-mode-card__copy strong {
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-size: 0.69rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.app-shell .work-mode-card__copy small {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-size: 0.56rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell .work-mode-card__check {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 12px;
+  height: 12px;
+}
+
+.app-shell .work-mode-card.is-active {
+  transform: rotate(-0.35deg);
+  border-color: #b98161;
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.app-shell .work-mode-card.is-active .work-mode-card__icon {
+  background: rgb(255 253 248 / 78%);
+}
+
+.app-shell .work-mode-card.is-active .work-mode-card__copy small { color: #795441; }
 .app-shell .filter-row { gap: 6px; padding: 0 24px 17px; }
 
 .app-shell .filter-chip,
@@ -2653,6 +2785,9 @@
   .app-shell .result-card:hover { transform: none; }
 
   .app-shell .result-card:hover { border-color: #cfaa92; background: #fff8f0; }
+  .app-shell .work-mode-card:hover { border-color: #b98161; background: #fff8f0; }
+  .app-shell .work-mode-card.is-active:hover { background: var(--green-soft); }
+  .app-shell .work-mode-reset:hover { color: var(--green); }
 }
 
 @media (max-width: 1050px) {
@@ -2672,6 +2807,15 @@
 
   .app-shell .results-panel::before { width: 42px; height: 4px; background: #c9b8a9; }
   .app-shell .results-panel__header { padding: 10px 16px; }
+  .app-shell .work-mode-chooser { margin: 0 16px 10px; padding: 10px; }
+  .app-shell .work-mode-grid {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .app-shell .work-mode-grid::-webkit-scrollbar { display: none; }
+  .app-shell .work-mode-card { min-width: 142px; min-height: 46px; }
   .app-shell .filter-row { padding: 0 16px 10px; }
   .app-shell .results-sort { padding: 8px 16px; }
   .app-shell .detail-panel { padding: 4px 14px 22px; }
