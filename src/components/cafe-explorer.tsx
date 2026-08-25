@@ -9,6 +9,7 @@ import {
   Coffee,
   ExternalLink,
   Flag,
+  Info,
   LocateFixed,
   MapPin,
   Navigation,
@@ -54,6 +55,19 @@ const MAP_CENTER: [number, number] = [-122.4216, 37.7708];
 const MAP_STYLES = {
   light: "https://tiles.openfreemap.org/styles/positron",
   dark: "https://tiles.openfreemap.org/styles/positron",
+};
+
+type ConfirmationFieldId = "wifi" | "outlets" | "noise" | "laptopPolicy";
+
+type SessionConfirmation = {
+  fields: ConfirmationFieldId[];
+};
+
+const CONFIRMATION_LABELS: Record<ConfirmationFieldId, string> = {
+  wifi: "Wi-Fi",
+  outlets: "Outlets",
+  noise: "Quietness",
+  laptopPolicy: "Laptop policy",
 };
 
 function Signal({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
@@ -164,16 +178,50 @@ function OwnerCallout({ onClaim }: { onClaim: () => void }) {
 
 function CafeDetail({
   cafe,
+  confirmation,
   onBack,
+  onConfirm,
   onOpenOffer,
   onToast,
 }: {
   cafe: Cafe;
+  confirmation?: SessionConfirmation;
   onBack: () => void;
+  onConfirm: (fields: ConfirmationFieldId[]) => void;
   onOpenOffer: (offer: MonetizationOffer) => void;
   onToast: (message: string) => void;
 }) {
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [selectedFields, setSelectedFields] = useState<Set<ConfirmationFieldId>>(
+    () => new Set(confirmation?.fields ?? []),
+  );
   const directionsUrl = `https://www.openstreetmap.org/directions?to=${cafe.latitude}%2C${cafe.longitude}`;
+  const confirmationPanelId = `confirmation-panel-${cafe.id}`;
+  const confirmationFields: { id: ConfirmationFieldId; value: string }[] = [
+    { id: "wifi", value: cafe.wifi },
+    { id: "outlets", value: cafe.outlets },
+    { id: "noise", value: cafe.noise },
+    { id: "laptopPolicy", value: cafe.laptopPolicy },
+  ];
+  const confirmationCount = cafe.confirmations + (confirmation ? 1 : 0);
+
+  const toggleConfirmationField = (field: ConfirmationFieldId) => {
+    setSelectedFields((current) => {
+      const next = new Set(current);
+      if (next.has(field)) next.delete(field);
+      else next.add(field);
+      return next;
+    });
+  };
+
+  const submitConfirmation = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const fields = confirmationFields
+      .map(({ id }) => id)
+      .filter((field) => selectedFields.has(field));
+    if (fields.length === 0) return;
+    onConfirm(fields);
+  };
 
   return (
     <div className="detail-panel">
@@ -221,10 +269,94 @@ function CafeDetail({
         <a className="sketch-button sketch-button--primary hachure-fill" href={directionsUrl} rel="noreferrer" target="_blank">
           <Navigation aria-hidden="true" /> Directions
         </a>
-        <button className="sketch-button" onClick={() => onToast("Details confirmed — thanks, neighbor!")} type="button">
-          <Check aria-hidden="true" /> Still accurate
+        <button
+          aria-controls={confirmationPanelId}
+          aria-expanded={confirmationOpen}
+          className={confirmationOpen ? "sketch-button confirmation-trigger is-active" : "sketch-button confirmation-trigger"}
+          onClick={() => setConfirmationOpen((open) => !open)}
+          type="button"
+        >
+          <Check aria-hidden="true" /> {confirmation ? "Checked this visit" : "Still accurate"}
         </button>
       </div>
+
+      {confirmationOpen && (
+        <section
+          aria-labelledby={`${confirmationPanelId}-title`}
+          className="confirmation-panel rough-surface"
+          id={confirmationPanelId}
+        >
+          <div className="confirmation-panel__heading">
+            <span aria-hidden="true" className="confirmation-panel__doodle">
+              <Check />
+            </span>
+            <div>
+              <span className="eyebrow">Community check-in</span>
+              <h3 id={`${confirmationPanelId}-title`}>What did you verify?</h3>
+              <p>Check only the facts you saw during this visit.</p>
+            </div>
+          </div>
+
+          <form onSubmit={submitConfirmation}>
+            <fieldset>
+              <legend className="sr-only">Facts you verified at {cafe.name}</legend>
+              <div className="confirmation-facts">
+                {confirmationFields.map((field) => {
+                  const checked = selectedFields.has(field.id);
+                  return (
+                    <label
+                      className={checked ? "confirmation-fact is-selected" : "confirmation-fact"}
+                      key={field.id}
+                    >
+                      <input
+                        checked={checked}
+                        onChange={() => toggleConfirmationField(field.id)}
+                        type="checkbox"
+                      />
+                      <span aria-hidden="true" className="confirmation-fact__check">
+                        <Check />
+                      </span>
+                      <span className="confirmation-fact__copy">
+                        <strong>{CONFIRMATION_LABELS[field.id]}</strong>
+                        <span>{field.value}</span>
+                      </span>
+                      <small>community fact</small>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <div className="confirmation-panel__submit-row">
+              <p>{selectedFields.size === 0 ? "Choose at least one fact." : `${selectedFields.size} fact${selectedFields.size === 1 ? "" : "s"} ready to confirm.`}</p>
+              <button
+                className="sketch-button sketch-button--primary hachure-fill"
+                disabled={selectedFields.size === 0}
+                type="submit"
+              >
+                <Check aria-hidden="true" /> {confirmation ? "Update my check" : "Confirm selected"}
+              </button>
+            </div>
+          </form>
+
+          {confirmation && (
+            <div aria-live="polite" className="confirmation-panel__feedback" role="status">
+              <BadgeCheck aria-hidden="true" />
+              <p>
+                <strong>Thanks — {confirmation.fields.length} fact{confirmation.fields.length === 1 ? " is" : "s are"} fresh as of just now.</strong>
+                {" "}The café now shows {confirmationCount} community confirmation{confirmationCount === 1 ? "" : "s"} in this session.
+              </p>
+            </div>
+          )}
+
+          <div className="confirmation-panel__disclosure">
+            <Info aria-hidden="true" />
+            <p>
+              <strong>Just this browser session.</strong> Nothing is sent or made public, and refreshing clears your check. Community checks update freshness only—not ranking. Owner-provided facts remain separate and labeled.
+            </p>
+          </div>
+        </section>
+      )}
 
       <section className="detail-section">
         <div className="section-heading">
@@ -256,8 +388,15 @@ function CafeDetail({
       <section className="verification-card rough-surface">
         <BadgeCheck aria-hidden="true" />
         <div>
-          <h3>Freshly checked</h3>
-          <p>Confirmed by {cafe.confirmations} people · last update {cafe.freshness}</p>
+          <h3>{confirmation ? "Checked by you just now" : "Freshly checked"}</h3>
+          <p>
+            {confirmation ? `${confirmationCount} community confirmations` : `Confirmed by ${confirmationCount} people`} · last community check {confirmation ? "just now" : cafe.freshness}
+          </p>
+          {confirmation && (
+            <p className="verification-card__fields">
+              You verified {confirmation.fields.map((field) => CONFIRMATION_LABELS[field]).join(", ")}.
+            </p>
+          )}
           <button onClick={() => onToast("Edit suggestion opened for community review.")} type="button">Suggest an edit →</button>
         </div>
       </section>
@@ -287,6 +426,7 @@ export function CafeExplorer() {
   const [communityCafes, setCommunityCafes] = useState<Cafe[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [monetizationOffer, setMonetizationOffer] = useState<MonetizationOffer | null>(null);
+  const [sessionConfirmations, setSessionConfirmations] = useState<Record<string, SessionConfirmation>>({});
   const [mapMoved, setMapMoved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -363,7 +503,15 @@ export function CafeExplorer() {
           {selectedCafe ? (
             <CafeDetail
               cafe={selectedCafe}
+              confirmation={sessionConfirmations[selectedCafe.id]}
+              key={selectedCafe.id}
               onBack={() => setSelectedId(null)}
+              onConfirm={(fields) => {
+                setSessionConfirmations((current) => ({
+                  ...current,
+                  [selectedCafe.id]: { fields },
+                }));
+              }}
               onOpenOffer={setMonetizationOffer}
               onToast={setToast}
             />
