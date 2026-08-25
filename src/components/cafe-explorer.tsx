@@ -502,7 +502,9 @@ export function CafeExplorer() {
         </section>
       </div>
 
-      <AddCafeDialog open={addOpen} onClose={() => setAddOpen(false)} onPublish={publishCafe} />
+      {addOpen && (
+        <AddCafeDialog onClose={() => setAddOpen(false)} onPublish={publishCafe} />
+      )}
       <MonetizationDialog
         cafe={selectedCafe ?? CAFES[0]}
         key={monetizationOffer ?? "closed"}
