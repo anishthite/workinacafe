@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   Camera,
   Check,
+  ChevronDown,
   Clock3,
   Coffee,
   ExternalLink,
@@ -50,6 +51,11 @@ import {
   type Cafe,
   type FilterId,
 } from "@/data/cafes";
+import {
+  CAFE_SORT_OPTIONS,
+  sortCafes,
+  type CafeSortId,
+} from "@/lib/cafe-sort";
 
 const MAP_CENTER: [number, number] = [-122.4216, 37.7708];
 const CAFE_QUERY_PARAM = "cafe";
@@ -350,6 +356,7 @@ export function CafeExplorer() {
   const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Set<FilterId>>(new Set(["open"]));
+  const [sortId, setSortId] = useState<CafeSortId>("recommended");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [communityCafes, setCommunityCafes] = useState<Cafe[]>([]);
@@ -372,14 +379,20 @@ export function CafeExplorer() {
 
   const visibleCafes = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
-    return allCafes.filter((cafe) => {
+    const matchingCafes = allCafes.filter((cafe) => {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         cafe.name.toLocaleLowerCase().includes(normalizedQuery) ||
         cafe.neighborhood.toLocaleLowerCase().includes(normalizedQuery);
       return matchesQuery && cafeMatchesFilters(cafe, filters);
     });
-  }, [allCafes, filters, query]);
+
+    return sortCafes(matchingCafes, sortId);
+  }, [allCafes, filters, query, sortId]);
+
+  const sortExplanation = CAFE_SORT_OPTIONS.find(
+    (option) => option.id === sortId,
+  )?.explanation;
 
   const selectedCafe = allCafes.find((cafe) => cafe.id === selectedId) ?? null;
 
@@ -504,8 +517,21 @@ export function CafeExplorer() {
               </div>
 
               <div className="results-sort">
-                <span><MapPin aria-hidden="true" /> Near the Mission</span>
-                <button type="button">Recommended ↓</button>
+                <span className="results-sort__context"><MapPin aria-hidden="true" /> Near the Mission</span>
+                <label className="results-sort__control">
+                  <span className="sr-only">Sort cafés</span>
+                  <select
+                    aria-describedby="sort-explanation"
+                    onChange={(event) => setSortId(event.target.value as CafeSortId)}
+                    value={sortId}
+                  >
+                    {CAFE_SORT_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>{option.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown aria-hidden="true" />
+                </label>
+                <p aria-live="polite" id="sort-explanation">{sortExplanation}</p>
               </div>
 
               <div className="results-list">
