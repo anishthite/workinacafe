@@ -5,17 +5,17 @@ import {
   ArrowRight,
   Check,
   Coffee,
+  History,
   MapPin,
   Search,
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { Cafe } from "@/data/cafes";
 
 type AddCafeDialogProps = {
-  open: boolean;
   onClose: () => void;
   onPublish: (cafe: Cafe) => void;
 };
@@ -43,6 +43,92 @@ const INITIAL_DRAFT: Draft = {
 };
 
 const STEPS = ["Find it", "Pin + basics", "Work setup", "Review"];
+const DRAFT_STORAGE_KEY = "workinacafe:add-cafe-draft";
+
+type StoredDraft = {
+  version: 1;
+  step: number;
+  draft: Draft;
+};
+
+function isOneOf<T extends string>(value: unknown, options: readonly T[]): value is T {
+  return typeof value === "string" && options.includes(value as T);
+}
+
+function isDraft(value: unknown): value is Draft {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.name === "string" &&
+    typeof candidate.address === "string" &&
+    typeof candidate.neighborhood === "string" &&
+    isOneOf(candidate.wifi, ["Okay", "Good", "Great"] as const) &&
+    isOneOf(candidate.outlets, ["None", "A few", "Many"] as const) &&
+    isOneOf(candidate.noise, ["Quiet", "Conversational", "Lively"] as const) &&
+    isOneOf(candidate.calls, ["Not ideal", "Brief calls", "Calls welcome"] as const) &&
+    typeof candidate.seatTip === "string"
+  );
+}
+
+function readStoredDraft(): StoredDraft | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const saved = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!saved) return null;
+
+    const candidate = JSON.parse(saved) as Partial<StoredDraft>;
+    if (
+      candidate.version !== 1 ||
+      !Number.isInteger(candidate.step) ||
+      typeof candidate.step !== "number" ||
+      candidate.step < 0 ||
+      candidate.step >= STEPS.length ||
+      !isDraft(candidate.draft)
+    ) {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+      return null;
+    }
+
+    return candidate as StoredDraft;
+  } catch {
+    return null;
+  }
+}
+
+function removeStoredDraft() {
+  try {
+    window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch {
+    // The form remains usable when storage is blocked or unavailable.
+  }
+}
+
+function persistDraft(draft: Draft, step: number) {
+  try {
+    if (isMeaningfulDraft(draft)) {
+      const storedDraft: StoredDraft = { version: 1, step, draft };
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(storedDraft));
+    } else {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  } catch {
+    // Browser privacy settings and quota failures should not block the form.
+  }
+}
+
+function isMeaningfulDraft(draft: Draft) {
+  return (Object.keys(INITIAL_DRAFT) as (keyof Draft)[]).some(
+    (key) => draft[key] !== INITIAL_DRAFT[key],
+  );
+}
+
+function validatedStep(step: number, draft: Draft) {
+  if (draft.name.trim().length <= 1) return 0;
+  if (step > 1 && draft.address.trim().length <= 3) return 1;
+  return step;
+}
 
 function ChoiceGroup<T extends string>({
   label,
@@ -75,22 +161,31 @@ function ChoiceGroup<T extends string>({
   );
 }
 
-export function AddCafeDialog({ open, onClose, onPublish }: AddCafeDialogProps) {
-  const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState<Draft>(INITIAL_DRAFT);
+export function AddCafeDialog({ onClose, onPublish }: AddCafeDialogProps) {
+  const [savedDraft] = useState(readStoredDraft);
+  const [step, setStep] = useState(() =>
+    savedDraft ? validatedStep(savedDraft.step, savedDraft.draft) : 0,
+  );
+  const [draft, setDraft] = useState<Draft>(() => savedDraft?.draft ?? INITIAL_DRAFT);
+  const [restoredDraft, setRestoredDraft] = useState(() => Boolean(savedDraft));
+
+  const close = useCallback(() => {
+    persistDraft(draft, step);
+    onClose();
+  }, [draft, onClose, step]);
 
   useEffect(() => {
-    if (!open) return;
-
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") close();
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
+  }, [close]);
 
-  if (!open) return null;
+  useEffect(() => {
+    persistDraft(draft, step);
+  }, [draft, step]);
 
   const canContinue =
     (step === 0 && draft.name.trim().length > 1) ||
@@ -125,12 +220,21 @@ export function AddCafeDialog({ open, onClose, onPublish }: AddCafeDialogProps) 
     };
 
     onPublish(cafe);
+    removeStoredDraft();
     setDraft(INITIAL_DRAFT);
     setStep(0);
+    setRestoredDraft(false);
+  };
+
+  const discardDraft = () => {
+    removeStoredDraft();
+    setDraft(INITIAL_DRAFT);
+    setStep(0);
+    setRestoredDraft(false);
   };
 
   return (
-    <div className="dialog-backdrop" onMouseDown={onClose}>
+    <div className="dialog-backdrop" onMouseDown={close}>
       <section
         aria-labelledby="add-cafe-title"
         aria-modal="true"
@@ -145,7 +249,7 @@ export function AddCafeDialog({ open, onClose, onPublish }: AddCafeDialogProps) 
             </span>
             <h2 id="add-cafe-title">Add a café worth working from</h2>
           </div>
-          <button className="icon-button" onClick={onClose} type="button">
+          <button className="icon-button" onClick={close} type="button">
             <X aria-hidden="true" />
             <span className="sr-only">Close add café dialog</span>
           </button>
@@ -161,6 +265,18 @@ export function AddCafeDialog({ open, onClose, onPublish }: AddCafeDialogProps) 
         </ol>
 
         <div className="add-dialog__content">
+          {restoredDraft && (
+            <div aria-live="polite" className="draft-recovery" role="status">
+              <History aria-hidden="true" />
+              <div>
+                <strong>Saved draft restored</strong>
+                <span>Your unfinished café was saved only in this browser.</span>
+              </div>
+              <button className="text-button" onClick={discardDraft} type="button">
+                Discard draft
+              </button>
+            </div>
+          )}
           {step === 0 && (
             <div className="dialog-step">
               <div className="dialog-step__intro">
@@ -356,7 +472,7 @@ export function AddCafeDialog({ open, onClose, onPublish }: AddCafeDialogProps) 
         <footer className="add-dialog__footer">
           <button
             className="text-button"
-            onClick={() => (step === 0 ? onClose() : setStep(step - 1))}
+            onClick={() => (step === 0 ? close() : setStep(step - 1))}
             type="button"
           >
             <ArrowLeft aria-hidden="true" /> {step === 0 ? "Cancel" : "Back"}

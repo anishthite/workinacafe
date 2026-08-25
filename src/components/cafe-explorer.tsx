@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   Camera,
   Check,
+  ChevronDown,
   Clock3,
   Coffee,
   ExternalLink,
@@ -30,7 +31,8 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { AddCafeDialog } from "@/components/add-cafe-dialog";
 import { CafeSketch } from "@/components/cafe-sketch";
@@ -53,8 +55,15 @@ import {
   type Cafe,
   type FilterId,
 } from "@/data/cafes";
+import {
+  CAFE_SORT_OPTIONS,
+  sortCafes,
+  type CafeSortId,
+} from "@/lib/cafe-sort";
 
 const MAP_CENTER: [number, number] = [-122.4216, 37.7708];
+const CAFE_QUERY_PARAM = "cafe";
+const BUILT_IN_CAFE_IDS = new Set(CAFES.map((cafe) => cafe.id));
 const MAP_STYLES = {
   light: "https://tiles.openfreemap.org/styles/positron",
   dark: "https://tiles.openfreemap.org/styles/positron",
@@ -100,6 +109,68 @@ const WORK_MODES: readonly WorkMode[] = [
     filters: ["open", "outdoor"],
   },
 ];
+
+function cafeHref(pathname: string, search: string, cafeId: string | null) {
+  const params = new URLSearchParams(search);
+
+  if (cafeId) params.set(CAFE_QUERY_PARAM, cafeId);
+  else params.delete(CAFE_QUERY_PARAM);
+
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
+async function copyToClipboard(value: string) {
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    const textarea = document.createElement("textarea");
+    const previouslyFocused = document.activeElement;
+
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+      const copied = document.execCommand("copy");
+      textarea.remove();
+      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
+      return copied;
+    } catch {
+      textarea.remove();
+      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
+      return false;
+    }
+  }
+}
+
+function CafeQuerySync({ onChange }: { onChange: (cafeId: string | null) => void }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
+  const cafeId = searchParams.get(CAFE_QUERY_PARAM);
+
+  useEffect(() => {
+    if (!cafeId) {
+      onChange(null);
+      return;
+    }
+
+    if (BUILT_IN_CAFE_IDS.has(cafeId)) {
+      onChange(cafeId);
+      return;
+    }
+
+    onChange(null);
+    window.history.replaceState(null, "", cafeHref(pathname, search, null));
+  }, [cafeId, onChange, pathname, search]);
+
+  return null;
+}
 
 function Signal({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
@@ -211,11 +282,13 @@ function CafeDetail({
   cafe,
   onBack,
   onOpenOffer,
+  onShare,
   onToast,
 }: {
   cafe: Cafe;
   onBack: () => void;
   onOpenOffer: (offer: MonetizationOffer) => void;
+  onShare: () => void;
   onToast: (message: string) => void;
 }) {
   const directionsUrl = `https://www.openstreetmap.org/directions?to=${cafe.latitude}%2C${cafe.longitude}`;
@@ -228,9 +301,9 @@ function CafeDetail({
         </button>
         <div>
           <button
-            aria-label="Share café"
+            aria-label={`Share ${cafe.name}`}
             className="icon-button"
-            onClick={() => onToast("Share link copied — in spirit, for this V1 ✦")}
+            onClick={onShare}
             type="button"
           >
             <Share2 aria-hidden="true" />
@@ -325,9 +398,11 @@ function CafeDetail({
 }
 
 export function CafeExplorer() {
+  const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Set<FilterId>>(new Set(["open"]));
   const [activeWorkMode, setActiveWorkMode] = useState<WorkModeId | null>(null);
+  const [sortId, setSortId] = useState<CafeSortId>("recommended");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [communityCafes, setCommunityCafes] = useState<Cafe[]>([]);
@@ -335,6 +410,10 @@ export function CafeExplorer() {
   const [monetizationOffer, setMonetizationOffer] = useState<MonetizationOffer | null>(null);
   const [mapMoved, setMapMoved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  const syncSelectedCafe = useCallback((cafeId: string | null) => {
+    setSelectedId(cafeId);
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -346,16 +425,53 @@ export function CafeExplorer() {
 
   const visibleCafes = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
-    return allCafes.filter((cafe) => {
+    const matchingCafes = allCafes.filter((cafe) => {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         cafe.name.toLocaleLowerCase().includes(normalizedQuery) ||
         cafe.neighborhood.toLocaleLowerCase().includes(normalizedQuery);
       return matchesQuery && cafeMatchesFilters(cafe, filters);
     });
-  }, [allCafes, filters, query]);
+
+    return sortCafes(matchingCafes, sortId);
+  }, [allCafes, filters, query, sortId]);
+
+  const sortExplanation = CAFE_SORT_OPTIONS.find(
+    (option) => option.id === sortId,
+  )?.explanation;
 
   const selectedCafe = allCafes.find((cafe) => cafe.id === selectedId) ?? null;
+
+  const updateCafeUrl = useCallback((cafeId: string | null, replace = false) => {
+    const href = cafeHref(pathname, window.location.search, cafeId);
+    if (replace) window.history.replaceState(null, "", href);
+    else window.history.pushState(null, "", href);
+  }, [pathname]);
+
+  const selectCafe = useCallback((cafe: Cafe) => {
+    setSelectedId(cafe.id);
+
+    if (BUILT_IN_CAFE_IDS.has(cafe.id)) updateCafeUrl(cafe.id);
+    else updateCafeUrl(null, true);
+  }, [updateCafeUrl]);
+
+  const closeCafe = useCallback(() => {
+    setSelectedId(null);
+    updateCafeUrl(null, true);
+  }, [updateCafeUrl]);
+
+  const shareCafe = useCallback(async (cafe: Cafe) => {
+    if (!BUILT_IN_CAFE_IDS.has(cafe.id)) {
+      setToast("New community spots stay in this session and can’t be shared yet.");
+      return;
+    }
+
+    const shareUrl = new URL(pathname, window.location.origin);
+    shareUrl.searchParams.set(CAFE_QUERY_PARAM, cafe.id);
+
+    const copied = await copyToClipboard(shareUrl.toString());
+    setToast(copied ? "Share link copied to your clipboard." : "Couldn’t copy the link. Copy it from your address bar.");
+  }, [pathname]);
 
   const toggleFilter = (filter: FilterId) => {
     setActiveWorkMode(null);
@@ -384,15 +500,19 @@ export function CafeExplorer() {
 
   const publishCafe = (cafe: Cafe) => {
     setCommunityCafes((current) => [cafe, ...current]);
-    setSelectedId(cafe.id);
+    selectCafe(cafe);
     setAddOpen(false);
     setToast(`${cafe.name} is now on the community map!`);
   };
 
   return (
     <main className="app-shell">
+      <Suspense fallback={null}>
+        <CafeQuerySync onChange={syncSelectedCafe} />
+      </Suspense>
+
       <header className="topbar rough-surface">
-        <button aria-label="workina.cafe home" className="wordmark" onClick={() => setSelectedId(null)} type="button">
+        <button aria-label="workina.cafe home" className="wordmark" onClick={closeCafe} type="button">
           <span className="wordmark__mark"><Coffee aria-hidden="true" /></span>
           <span>work<span>ina.cafe</span></span>
         </button>
@@ -425,8 +545,9 @@ export function CafeExplorer() {
           {selectedCafe ? (
             <CafeDetail
               cafe={selectedCafe}
-              onBack={() => setSelectedId(null)}
+              onBack={closeCafe}
               onOpenOffer={setMonetizationOffer}
+              onShare={() => shareCafe(selectedCafe)}
               onToast={setToast}
             />
           ) : (
@@ -495,8 +616,21 @@ export function CafeExplorer() {
               </div>
 
               <div className="results-sort">
-                <span><MapPin aria-hidden="true" /> Near the Mission</span>
-                <button type="button">Recommended ↓</button>
+                <span className="results-sort__context"><MapPin aria-hidden="true" /> Near the Mission</span>
+                <label className="results-sort__control">
+                  <span className="sr-only">Sort cafés</span>
+                  <select
+                    aria-describedby="sort-explanation"
+                    onChange={(event) => setSortId(event.target.value as CafeSortId)}
+                    value={sortId}
+                  >
+                    {CAFE_SORT_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>{option.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown aria-hidden="true" />
+                </label>
+                <p aria-live="polite" id="sort-explanation">{sortExplanation}</p>
               </div>
 
               <div className="results-list">
@@ -507,7 +641,7 @@ export function CafeExplorer() {
                     index={index}
                     key={cafe.id}
                     onHover={(hovered) => setHoveredId(hovered ? cafe.id : null)}
-                    onSelect={() => setSelectedId(cafe.id)}
+                    onSelect={() => selectCafe(cafe)}
                   />
                 ))}
                 {visibleCafes.length === 0 && (
@@ -535,7 +669,7 @@ export function CafeExplorer() {
                 key={cafe.id}
                 latitude={cafe.latitude}
                 longitude={cafe.longitude}
-                onClick={() => setSelectedId(cafe.id)}
+                onClick={() => selectCafe(cafe)}
                 onMouseEnter={() => setHoveredId(cafe.id)}
                 onMouseLeave={() => setHoveredId(null)}
               >
@@ -560,13 +694,13 @@ export function CafeExplorer() {
                 closeButton
                 latitude={selectedCafe.latitude}
                 longitude={selectedCafe.longitude}
-                onClose={() => setSelectedId(null)}
+                onClose={closeCafe}
                 offset={38}
               >
                 <span className="eyebrow">{selectedCafe.isOpen ? "open now" : "closed"}</span>
                 <strong>{selectedCafe.name}</strong>
                 <p>{selectedCafe.wifi} Wi-Fi · {selectedCafe.outlets} outlets</p>
-                <button onClick={() => setSelectedId(selectedCafe.id)} type="button">View details →</button>
+                <button onClick={() => selectCafe(selectedCafe)} type="button">View details →</button>
               </MapPopup>
             )}
 
@@ -601,7 +735,9 @@ export function CafeExplorer() {
         </section>
       </div>
 
-      <AddCafeDialog open={addOpen} onClose={() => setAddOpen(false)} onPublish={publishCafe} />
+      {addOpen && (
+        <AddCafeDialog onClose={() => setAddOpen(false)} onPublish={publishCafe} />
+      )}
       <MonetizationDialog
         cafe={selectedCafe ?? CAFES[0]}
         key={monetizationOffer ?? "closed"}
