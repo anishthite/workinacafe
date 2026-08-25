@@ -11,19 +11,19 @@ export const CAFE_SORT_OPTIONS: ReadonlyArray<{
     id: "recommended",
     label: "Recommended",
     explanation:
-      "More community confirmations first; ties use fresher checks, then distance.",
+      "More community confirmations first; ties use freshness, distance, alphabetical café name, then listing ID.",
   },
   {
     id: "nearest",
     label: "Nearest",
     explanation:
-      "Shortest listed distance first; ties are alphabetical. New cafés without a distance follow.",
+      "Shortest listed distance first; ties use alphabetical café name, then listing ID. New cafés without a distance follow.",
   },
   {
     id: "recently-verified",
     label: "Recently verified",
     explanation:
-      "Newest community checks first; ties use confirmations, then distance. Undated map screenings follow.",
+      "Newest community checks first; undated map screenings follow. Ties use confirmations, distance, alphabetical café name, then listing ID.",
   },
 ];
 
