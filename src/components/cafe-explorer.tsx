@@ -10,6 +10,7 @@ import {
   Coffee,
   ExternalLink,
   Flag,
+  Focus,
   LocateFixed,
   MapPin,
   Navigation,
@@ -23,9 +24,12 @@ import {
   Trees,
   UserRound,
   Users,
+  Video,
   Volume2,
   Wifi,
   X,
+  Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
@@ -64,6 +68,47 @@ const MAP_STYLES = {
   light: "https://tiles.openfreemap.org/styles/positron",
   dark: "https://tiles.openfreemap.org/styles/positron",
 };
+
+type WorkModeId = "deep-focus" | "video-calls" | "power-session" | "outside";
+
+type WorkMode = {
+  id: WorkModeId;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  filters: readonly FilterId[];
+};
+
+const WORK_MODES: readonly WorkMode[] = [
+  {
+    id: "deep-focus",
+    label: "Deep focus",
+    description: "Quiet + strong Wi-Fi",
+    icon: Focus,
+    filters: ["open", "wifi", "quiet"],
+  },
+  {
+    id: "video-calls",
+    label: "Video calls",
+    description: "Strong Wi-Fi + calls OK",
+    icon: Video,
+    filters: ["open", "wifi", "calls"],
+  },
+  {
+    id: "power-session",
+    label: "Power session",
+    description: "Strong Wi-Fi + outlets",
+    icon: Zap,
+    filters: ["open", "wifi", "outlets"],
+  },
+  {
+    id: "outside",
+    label: "Outside",
+    description: "Open now + outdoor seats",
+    icon: Trees,
+    filters: ["open", "outdoor"],
+  },
+];
 
 function cafeHref(pathname: string, search: string, cafeId: string | null) {
   const params = new URLSearchParams(search);
@@ -356,6 +401,7 @@ export function CafeExplorer() {
   const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Set<FilterId>>(new Set(["open"]));
+  const [activeWorkMode, setActiveWorkMode] = useState<WorkModeId | null>(null);
   const [sortId, setSortId] = useState<CafeSortId>("recommended");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -428,12 +474,28 @@ export function CafeExplorer() {
   }, [pathname]);
 
   const toggleFilter = (filter: FilterId) => {
+    setActiveWorkMode(null);
     setFilters((current) => {
       const next = new Set(current);
       if (next.has(filter)) next.delete(filter);
       else next.add(filter);
       return next;
     });
+  };
+
+  const selectWorkMode = (mode: WorkMode) => {
+    setActiveWorkMode(mode.id);
+    setFilters(new Set(mode.filters));
+  };
+
+  const showAllCafes = () => {
+    setActiveWorkMode(null);
+    setFilters(new Set());
+  };
+
+  const clearDiscovery = () => {
+    showAllCafes();
+    setQuery("");
   };
 
   const publishCafe = (cafe: Cafe) => {
@@ -501,6 +563,43 @@ export function CafeExplorer() {
                 </button>
               </div>
 
+              <section aria-labelledby="work-mode-heading" className="work-mode-chooser">
+                <div className="work-mode-chooser__heading">
+                  <h2 id="work-mode-heading">What are you working on?</h2>
+                  <button
+                    aria-pressed={activeWorkMode === null && filters.size === 0}
+                    className={activeWorkMode === null && filters.size === 0 ? "work-mode-reset is-active" : "work-mode-reset"}
+                    onClick={showAllCafes}
+                    type="button"
+                  >
+                    Show all
+                  </button>
+                </div>
+                <div aria-label="Work modes" className="work-mode-grid" role="group">
+                  {WORK_MODES.map((mode) => {
+                    const Icon = mode.icon;
+                    const active = activeWorkMode === mode.id;
+
+                    return (
+                      <button
+                        aria-pressed={active}
+                        className={active ? "work-mode-card is-active" : "work-mode-card"}
+                        key={mode.id}
+                        onClick={() => selectWorkMode(mode)}
+                        type="button"
+                      >
+                        <span className="work-mode-card__icon"><Icon aria-hidden="true" /></span>
+                        <span className="work-mode-card__copy">
+                          <strong>{mode.label}</strong>
+                          <small>{mode.description}</small>
+                        </span>
+                        {active && <Check aria-hidden="true" className="work-mode-card__check" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
               <div className="filter-row" aria-label="Café filters">
                 {FILTERS.map((filter) => (
                   <button
@@ -546,7 +645,7 @@ export function CafeExplorer() {
                   />
                 ))}
                 {visibleCafes.length === 0 && (
-                  <EmptyResults clearFilters={() => { setFilters(new Set()); setQuery(""); }} />
+                  <EmptyResults clearFilters={clearDiscovery} />
                 )}
                 {visibleCafes.length > 0 && <OwnerCallout onClaim={() => setMonetizationOffer("partner")} />}
               </div>
