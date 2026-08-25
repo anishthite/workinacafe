@@ -26,7 +26,7 @@ import {
   Wifi,
   X,
 } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { AddCafeDialog } from "@/components/add-cafe-dialog";
@@ -99,7 +99,6 @@ async function copyToClipboard(value: string) {
 
 function CafeQuerySync({ onChange }: { onChange: (cafeId: string | null) => void }) {
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const cafeId = searchParams.get(CAFE_QUERY_PARAM);
@@ -116,8 +115,8 @@ function CafeQuerySync({ onChange }: { onChange: (cafeId: string | null) => void
     }
 
     onChange(null);
-    router.replace(cafeHref(pathname, search, null), { scroll: false });
-  }, [cafeId, onChange, pathname, router, search]);
+    window.history.replaceState(null, "", cafeHref(pathname, search, null));
+  }, [cafeId, onChange, pathname, search]);
 
   return null;
 }
@@ -349,7 +348,6 @@ function CafeDetail({
 
 export function CafeExplorer() {
   const pathname = usePathname();
-  const router = useRouter();
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Set<FilterId>>(new Set(["open"]));
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -387,9 +385,9 @@ export function CafeExplorer() {
 
   const updateCafeUrl = useCallback((cafeId: string | null, replace = false) => {
     const href = cafeHref(pathname, window.location.search, cafeId);
-    if (replace) router.replace(href, { scroll: false });
-    else router.push(href, { scroll: false });
-  }, [pathname, router]);
+    if (replace) window.history.replaceState(null, "", href);
+    else window.history.pushState(null, "", href);
+  }, [pathname]);
 
   const selectCafe = useCallback((cafe: Cafe) => {
     setSelectedId(cafe.id);
