@@ -1126,6 +1126,253 @@
   grid-column: 1 / -1;
 }
 
+.confirmation-trigger.is-active {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.confirmation-trigger:focus-visible,
+.confirmation-panel__submit-row .sketch-button:focus-visible {
+  outline: 3px solid rgb(54 125 209 / 28%);
+  outline-offset: 2px;
+}
+
+.confirmation-panel {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  margin: 0 2px 18px;
+  padding: 16px;
+  overflow: hidden;
+  border-color: var(--green);
+  background:
+    linear-gradient(108deg, transparent 0 72%, rgb(15 138 95 / 5%) 72% 100%),
+    #fffefb;
+}
+
+.confirmation-panel::after {
+  position: absolute;
+  top: 10px;
+  right: -8px;
+  width: 72px;
+  height: 25px;
+  transform: rotate(8deg);
+  border-top: 1.5px dashed rgb(15 138 95 / 35%);
+  border-bottom: 1.5px dashed rgb(15 138 95 / 20%);
+  content: "";
+  pointer-events: none;
+}
+
+.confirmation-panel__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.confirmation-panel__doodle {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  transform: rotate(-3deg);
+  border: 1.5px solid var(--green);
+  border-radius: 48% 52% 45% 55%;
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.confirmation-panel__doodle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.confirmation-panel__heading h3 {
+  margin: 3px 0 2px;
+  font-size: 1.18rem;
+  font-weight: 400;
+}
+
+.confirmation-panel__heading p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.confirmation-panel form,
+.confirmation-panel fieldset {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.confirmation-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.confirmation-fact {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 0 8px;
+  min-width: 0;
+  min-height: 66px;
+  padding: 9px;
+  border: 1.3px solid rgb(24 49 83 / 28%);
+  border-radius: 8px 11px 7px 10px / 10px 7px 11px 8px;
+  background: white;
+  cursor: pointer;
+}
+
+.confirmation-fact input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.confirmation-fact__check {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  grid-row: 1;
+  place-items: center;
+  transform: rotate(-2deg);
+  border: 1.4px solid rgb(24 49 83 / 42%);
+  border-radius: 6px 8px 5px 7px;
+  background: var(--paper);
+  color: transparent;
+}
+
+.confirmation-fact__check svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 3;
+}
+
+.confirmation-fact__copy {
+  display: grid;
+  min-width: 0;
+}
+
+.confirmation-fact__copy strong {
+  font-family: var(--font-virgil), cursive;
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+.confirmation-fact__copy span {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 0.65rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirmation-fact small {
+  grid-column: 2;
+  margin-top: 4px;
+  color: var(--green);
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.confirmation-fact.is-selected {
+  border-color: var(--green);
+  background-color: var(--green-soft);
+  background-image: repeating-linear-gradient(-45deg, transparent 0 8px, rgb(15 138 95 / 9%) 8px 9px);
+}
+
+.confirmation-fact.is-selected .confirmation-fact__check {
+  border-color: var(--green);
+  background: var(--green);
+  color: white;
+}
+
+.confirmation-fact:has(input:focus-visible) {
+  outline: 3px solid rgb(54 125 209 / 28%);
+  outline-offset: 2px;
+}
+
+.confirmation-panel__submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 11px;
+}
+
+.confirmation-panel__submit-row p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.62rem;
+}
+
+.confirmation-panel__submit-row .sketch-button {
+  min-height: 36px;
+  padding: 7px 10px;
+  font-size: 0.73rem;
+  white-space: nowrap;
+}
+
+.confirmation-panel__submit-row .sketch-button:disabled {
+  border-color: rgb(24 49 83 / 20%);
+  background: var(--paper-deep);
+  color: rgb(24 49 83 / 48%);
+  cursor: not-allowed;
+}
+
+.confirmation-panel__feedback,
+.confirmation-panel__disclosure {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 7px 9px 6px 8px;
+}
+
+.confirmation-panel__feedback {
+  border: 1px solid rgb(15 138 95 / 25%);
+  background: var(--green-soft);
+  color: #326c58;
+}
+
+.confirmation-panel__disclosure {
+  border-left: 2px solid var(--blue);
+  background: var(--blue-soft);
+  color: #245e9f;
+}
+
+.confirmation-panel__feedback svg,
+.confirmation-panel__disclosure svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.confirmation-panel__feedback p,
+.confirmation-panel__disclosure p {
+  margin: 0;
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+.confirmation-panel__feedback strong,
+.confirmation-panel__disclosure strong {
+  display: block;
+  color: currentColor;
+}
+
 .detail-section {
   padding: 17px 2px;
   border-top: 1.5px dashed rgb(24 49 83 / 35%);
@@ -1281,6 +1528,12 @@
   margin: 3px 0 7px;
   color: #326c58;
   font-size: 0.67rem;
+}
+
+.verification-card .verification-card__fields {
+  margin-top: -3px;
+  color: var(--green);
+  font-weight: 650;
 }
 
 .verification-card button {
@@ -2116,6 +2369,12 @@
   border-color: #e7d6b5;
   background: var(--amber-soft);
   color: #745f36;
+}
+
+.app-shell .confirmation-trigger.is-active {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: var(--green);
 }
 
 .app-shell .explorer-layout {
