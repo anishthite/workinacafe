@@ -1576,6 +1576,47 @@
   overflow-y: auto;
 }
 
+.draft-recovery {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  transform: rotate(-0.2deg);
+  border: 1.5px dashed var(--blue);
+  border-radius: 8px 11px 7px 10px / 10px 7px 11px 8px;
+  background: var(--blue-soft);
+  color: #245e9f;
+}
+
+.draft-recovery > svg {
+  width: 24px;
+  height: 24px;
+}
+
+.draft-recovery > div {
+  display: grid;
+  gap: 2px;
+}
+
+.draft-recovery strong {
+  font-family: var(--font-virgil), cursive;
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+
+.draft-recovery span {
+  color: var(--ink-soft);
+  font-size: 0.67rem;
+  line-height: 1.35;
+}
+
+.draft-recovery .text-button {
+  color: #245e9f;
+  white-space: nowrap;
+}
+
 .dialog-step {
   display: grid;
   gap: 16px;
@@ -2575,6 +2616,15 @@
 
   .add-dialog__content {
     padding: 10px 17px 18px;
+  }
+
+  .draft-recovery {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .draft-recovery .text-button {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .field-grid,
